@@ -137,6 +137,16 @@
     }
 </script>
 <style>
+    /* 讓手機操作更舒適的樣式 */
+    @media (max-width: 600px) {
+    .container { margin: 10px; padding: 15px; width: auto; }
+    button, select, input { 
+        font-size: 18px; /* 放大文字，避免手機縮放 */
+        padding: 15px;   /* 增加點擊區域 */
+    }
+    .tab { padding: 15px 5px; font-size: 16px; }
+    }
+    
     /* 新增分頁切換樣式 */
     .tabs { display: flex; margin-bottom: 20px; }
     .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-bottom: 2px solid #eee; }
@@ -199,4 +209,5 @@
 </script>
 
 </body>
+
 </html>
