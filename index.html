@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服飾店 POS 系統</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, button { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        button { background-color: #28a745; color: white; border: none; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background-color: #218838; }
+        #resultArea { margin-top: 20px; padding: 10px; border-top: 2px solid #eee; }
+        .item-info { background: #e9ecef; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>服飾店 POS 結帳</h2>
+    
+    <div class="form-group">
+        <label>搜尋商品 (編號或名稱)</label>
+        <input type="text" id="searchInput" placeholder="輸入商品資訊..." oninput="searchItem()">
+    </div>
+
+    <div id="resultArea">
+        <p style="color: #666;">請輸入關鍵字搜尋商品...</p>
+    </div>
+
+    <div id="checkoutArea" style="display:none;">
+        <hr>
+        <div class="form-group">
+            <label>賣出數量</label>
+            <input type="number" id="sellQty" value="1" min="1">
+        </div>
+        <div class="form-group">
+            <label>支付方式</label>
+            <select id="payMethod">
+                <option value="現金">現金</option>
+                <option value="信用卡">信用卡</option>
+                <option value="轉帳">轉帳</option>
+                <option value="LINE Pay">LINE Pay</option>
+            </select>
+        </div>
+        <button onclick="submitCheckout()">確認結帳</button>
+    </div>
+</div>
+
+<script>
+    // 重要：請在此處替換為您的 GAS 部署網址
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbx7puH7LL34M7CwcCEIsoehAMWp5kIrj3F-m-tCMWwqj8AbyNy3cGCQSvq58s5hsWtn/exec"; 
+    let allItems = []; // 存儲從 Google Sheet 抓下來的庫存資料
+    let selectedItem = null;
+
+    // 頁面載入時先抓取一次庫存
+    window.onload = async () => {
+        try {
+            const response = await fetch(GAS_URL);
+            allItems = await response.json();
+            console.log("資料載入成功", allItems);
+        } catch (e) {
+            alert("資料載入失敗，請檢查 GAS 網址與權限設定");
+        }
+    };
+
+    // 搜尋功能
+    function searchItem() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const resultArea = document.getElementById('resultArea');
+        const checkoutArea = document.getElementById('checkoutArea');
+        
+        if (!query) {
+            resultArea.innerHTML = '<p style="color: #666;">請輸入關鍵字搜尋商品...</p>';
+            checkoutArea.style.display = 'none';
+            return;
+        }
+
+        // 篩選編號或名稱
+        const matches = allItems.filter(item => 
+            String(item["商品編號"]).toLowerCase().includes(query) || 
+            String(item["名稱"]).toLowerCase().includes(query)
+        );
+
+        if (matches.length > 0) {
+            selectedItem = matches[0]; // 簡單起見，取第一個匹配項
+            resultArea.innerHTML = `
+                <div class="item-info">
+                    <strong>商品：</strong> ${selectedItem["名稱"]} (${selectedItem["顏色"]}/${selectedItem["尺寸"]})<br>
+                    <strong>單價：</strong> $${selectedItem["單價"]}<br>
+                    <strong>目前庫存：</strong> ${selectedItem["庫存"]}
+                </div>
+            `;
+            checkoutArea.style.display = 'block';
+        } else {
+            resultArea.innerHTML = '<p style="color: red;">找不到該商品</p>';
+            checkoutArea.style.display = 'none';
+        }
+    }
+
+    // 提交結帳
+    async function submitCheckout() {
+        const sellQty = document.getElementById('sellQty').value;
+        const payMethod = document.getElementById('payMethod').value;
+
+        if (parseInt(sellQty) > selectedItem["庫存"]) {
+            alert("錯誤：銷售數量大於庫存！");
+            return;
+        }
+
+        if (!confirm(`確認結帳？\n商品：${selectedItem["名稱"]}\n金額：$${selectedItem["單價"] * sellQty}\n支付：${payMethod}`)) return;
+
+        // 發送 POST 請求給 GAS
+        try {
+            const response = await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    itemID: selectedItem["商品編號"],
+                    sellQty: parseInt(sellQty),
+                    payMethod: payMethod // 雖然目前 GAS 沒存支付方式，但可以傳過去備用
+                })
+            });
+            const resData = await response.json();
+
+            if (resData.result === "success") {
+                alert("結帳成功！庫存已更新。");
+                location.reload(); // 重新整理頁面更新最新資料
+            } else {
+                alert("結帳失敗：" + resData.message);
+            }
+        } catch (e) {
+            alert("連線發生錯誤");
+        }
+    }
+</script>
+<style>
+    /* 新增分頁切換樣式 */
+    .tabs { display: flex; margin-bottom: 20px; }
+    .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-bottom: 2px solid #eee; }
+    .tab.active { border-bottom: 2px solid #28a745; font-weight: bold; color: #28a745; }
+    #rankTable { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    #rankTable td, #rankTable th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+</style>
+
+<div class="container">
+    <div class="tabs">
+        <div class="tab active" id="posTab" onclick="showPage('pos')">前台結帳</div>
+        <div class="tab" id="rankTab" onclick="showPage('rank')">熱銷排行</div>
+    </div>
+
+    <div id="posPage">
+        </div>
+
+    <div id="rankPage" style="display:none;">
+        <h3>本期熱銷前 10 名</h3>
+        <table id="rankTable">
+            <thead>
+                <tr><th>商品名稱</th><th>銷售數量</th></tr>
+            </thead>
+            <tbody id="rankList">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function showPage(page) {
+        document.getElementById('posPage').style.display = (page === 'pos' ? 'block' : 'none');
+        document.getElementById('rankPage').style.display = (page === 'rank' ? 'block' : 'none');
+        document.getElementById('posTab').className = (page === 'pos' ? 'tab active' : 'tab');
+        document.getElementById('rankTab').className = (page === 'rank' ? 'tab active' : 'tab');
+
+        if (page === 'rank') {
+            loadRankings();
+        }
+    }
+
+    async function loadRankings() {
+        const rankList = document.getElementById('rankList');
+        rankList.innerHTML = '載入中...';
+        
+        try {
+            const response = await fetch(GAS_URL + "?type=ranking");
+            const data = await response.json();
+            
+            rankList.innerHTML = data.map((item, index) => `
+                <tr>
+                    <td>${index + 1}. ${item.name}</td>
+                    <td>${item.qty} 件</td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            rankList.innerHTML = '無法載入排行資料';
+        }
+    }
+</script>
+
+</body>
+</html>
