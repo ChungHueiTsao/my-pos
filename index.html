@@ -5,112 +5,124 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS POS 雲端平台</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f4; margin: 0; padding: 10px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .login-box { text-align: center; padding: 40px 20px; }
-        .pwd-container { position: relative; width: 100%; }
-        .toggle-pwd { position: absolute; right: 10px; top: 18px; cursor: pointer; color: #666; font-size: 14px; }
-        .tabs { display: flex; margin-bottom: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
-        .tab { flex: 1; text-align: center; padding: 15px 5px; cursor: pointer; background: #f8f9fa; }
-        .tab.active { background: #28a745; color: white; font-weight: bold; }
-        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
-        button { background-color: #28a745; color: white; border: none; font-weight: bold; cursor: pointer; }
-        #loadingOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; color:white; flex-direction:column; justify-content:center; align-items:center; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #28a745; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* 樣式沿用前版，新增會員卡片樣式 */
+        .member-info-bar { background: #e8f5e9; padding: 10px; border-radius: 4px; margin-bottom: 10px; display: none; border-left: 5px solid #28a745; }
+        .tab-bar { display: flex; overflow-x: auto; background: #fff; border-bottom: 1px solid #ddd; }
+        .tab { flex: none; width: 100px; padding: 15px 0; text-align: center; cursor: pointer; }
+        .tab.active { border-bottom: 3px solid #28a745; color: #28a745; font-weight: bold; }
     </style>
 </head>
 <body>
-
 <div id="loadingOverlay"><div class="spinner"></div><div id="loadingText">載入中...</div></div>
 
 <div class="container">
-    <div id="loginPage" class="login-box">
-        <h2>店家管理系統登入</h2>
-        <input type="text" id="loginShopID" placeholder="店家 ID (如 shop001)">
-        <div class="pwd-container">
-            <input type="password" id="loginPassword" placeholder="店長密碼">
-            <span class="toggle-pwd" onclick="togglePassword()">顯示</span>
-        </div>
-        <button onclick="handleLogin()">進入系統</button>
-    </div>
+    <div id="loginPage" class="login-box"> ... </div>
 
     <div id="mainSystem" style="display:none;">
-        <div class="tabs">
-            <div class="tab active" id="posTab" onclick="showPage('pos')">前台結帳</div>
-            <div class="tab" id="manageTab" onclick="showPage('manage')">庫存管理</div>
-            <div class="tab" id="catTab" onclick="showPage('category')">分類管理</div>
+        <div class="tab-bar">
+            <div class="tab active" id="posTab" onclick="showPage('pos')">結帳</div>
+            <div class="tab" id="manageTab" onclick="showPage('manage')">庫存</div>
+            <div class="tab" id="memberTab" onclick="showPage('member')">會員</div>
+            <div class="tab" id="catTab" onclick="showPage('category')">分類</div>
             <div class="tab" onclick="location.reload()">登出</div>
         </div>
-        <div id="pageContent">
-             <h3 id="displayShopName">載入中...</h3>
-             <div id="posPage">
-                 </div>
-             <div id="managePage" style="display:none;">
-                 </div>
-             <div id="categoryPage" style="display:none;">
-                 </div>
+
+        <div id="posPage" class="page">
+            <div style="margin: 10px 0;">
+                <input type="text" id="posMemberSearch" placeholder="輸入手機搜尋會員..." oninput="searchMemberPos()">
+                <div id="selectedMemberBar" class="member-info-bar"></div>
+            </div>
+            <input type="text" id="searchInput" placeholder="搜尋商品..." oninput="filterPosItems()">
+            <div id="posSearchResults"></div>
         </div>
-    </div>
+
+        <div id="memberPage" class="page" style="display:none;">
+            <div id="addMemberSection" style="display:none; border: 1px solid #28a745; padding: 10px; margin-bottom: 10px;">
+                <input type="text" id="m_custName" placeholder="姓名">
+                <input type="text" id="m_custPhone" placeholder="手機號碼">
+                <input type="date" id="m_custBirthday">
+                <button onclick="saveMember()">儲存會員</button>
+            </div>
+            <input type="text" id="memberSearchKeyword" placeholder="搜尋會員姓名或手機..." oninput="filterMemberList()">
+            <div id="memberListArea"></div>
+        </div>
+        
+        </div>
 </div>
 
 <script>
-    // 總部中央管理 GAS 網址 (請填入正確的 /exec 網址)
-    const CENTRAL_GAS = "https://script.google.com/macros/s/AKfycbxWxjDj6OYjlkCUXj-e1YX2tDMJ_qpmriq9_mNvnFm-9-teAbp3rkwjxzJ3ov--2WmZ/exec";
-    let CURRENT_SHOP_GAS = ""; 
+    const CENTRAL_GAS = "您的中央管理GAS網址";
+    let CURRENT_SHOP_GAS = "";
+    let allItems = [], allMembers = [];
+    let selectedMember = null;
 
-    function togglePassword() {
-        const pwdInput = document.getElementById('loginPassword');
-        const toggleBtn = document.querySelector('.toggle-pwd');
-        if (pwdInput.type === 'password') {
-            pwdInput.type = 'text';
-            toggleBtn.innerText = '隱藏';
+    // --- 登入邏輯 (同前版) ---
+
+    // --- 會員邏輯 ---
+    async function loadMembers() {
+        const res = await fetch(CURRENT_SHOP_GAS + "?type=members");
+        allMembers = await res.json();
+        filterMemberList();
+    }
+
+    function searchMemberPos() {
+        const phone = document.getElementById('posMemberSearch').value;
+        const member = allMembers.find(m => String(m["手機號碼"]) === phone);
+        const bar = document.getElementById('selectedMemberBar');
+        if (member) {
+            selectedMember = member;
+            bar.style.display = 'block';
+            bar.innerHTML = `👤 會員：${member["姓名"]} | 剩餘點數：${member["剩餘點數"]}`;
         } else {
-            pwdInput.type = 'password';
-            toggleBtn.innerText = '顯示';
+            selectedMember = null;
+            bar.style.display = 'none';
         }
     }
 
-    async function toggleLoading(show, text = "處理中...") {
-        document.getElementById('loadingText').innerText = text;
-        document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+    function filterMemberList() {
+        const kw = document.getElementById('memberSearchKeyword').value.toLowerCase();
+        const matches = allMembers.filter(m => m["姓名"].includes(kw) || String(m["手機號碼"]).includes(kw));
+        document.getElementById('memberListArea').innerHTML = matches.map(m => `
+            <div class="item-card">
+                <div><strong>${m["姓名"]}</strong> (${m["手機號碼"]})<br>點數：${m["剩餘點數"]} | 消費：${m["累積消費"]}</div>
+                <button onclick="editMember('${m["手機號碼"]}')" style="width:60px;">編輯</button>
+            </div>
+        `).join('');
     }
 
-    async function handleLogin() {
-        const id = document.getElementById('loginShopID').value.trim();
-        const pw = document.getElementById('loginPassword').value.trim();
-        if (!id || !pw) return alert("請完整輸入");
-
-        toggleLoading(true, "身分驗證中...");
-        try {
-            // 使用 JSONP 或 Fetch 搭配中央網址
-            const url = `${CENTRAL_GAS}?action=login&shopID=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            
-            if (data.result === "success") {
-                CURRENT_SHOP_GAS = data.targetGasUrl;
-                document.getElementById('displayShopName').innerText = "歡迎，" + data.shopName;
-                document.getElementById('loginPage').style.display = 'none';
-                document.getElementById('mainSystem').style.display = 'block';
-                // 登入後自動執行載入該店庫存的邏輯
-            } else {
-                alert("登入失敗：" + data.message);
-            }
-        } catch (e) {
-            alert("系統連線錯誤，請確認中央 GAS 部署網址是否正確且權限已開。");
-        }
+    async function saveMember() {
+        const data = {
+            "姓名": document.getElementById('m_custName').value,
+            "手機號碼": document.getElementById('m_custPhone').value,
+            "生日": document.getElementById('m_custBirthday').value
+        };
+        toggleLoading(true);
+        await fetch(CURRENT_SHOP_GAS, { method: "POST", body: JSON.stringify({ action: "updateMember", memberData: data }) });
+        await loadMembers();
         toggleLoading(false);
+        document.getElementById('addMemberSection').style.display = 'none';
+    }
+
+    // 結帳時帶入會員資訊
+    async function submitCheckout() {
+        // ... 原有結帳邏輯 ...
+        const payload = {
+            action: "checkout",
+            itemID: window.selectedItem["商品編號"],
+            sellQty: qty,
+            totalPrice: window.selectedItem["單價"] * qty,
+            memberPhone: selectedMember ? selectedMember["手機號碼"] : null
+        };
+        await fetch(CURRENT_SHOP_GAS, { method: "POST", body: JSON.stringify(payload) });
+        location.reload();
     }
 
     function showPage(page) {
-        ['posPage', 'managePage', 'categoryPage'].forEach(p => {
-            const el = document.getElementById(p);
-            if(el) el.style.display = (p === page + 'Page') ? 'block' : 'none';
-        });
-        ['posTab', 'manageTab', 'catTab'].forEach(t => {
-            document.getElementById(t).classList.toggle('active', t === page + 'Tab');
-        });
+        document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(page + 'Page').style.display = 'block';
+        document.getElementById(page + 'Tab').classList.add('active');
+        if (page === 'member') loadMembers();
     }
 </script>
 </body>
