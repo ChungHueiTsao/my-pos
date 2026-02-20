@@ -5,155 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>服飾店 POS 系統</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #333; }
+        /* 基礎樣式 */
+        body { font-family: sans-serif; padding: 10px; background-color: #f4f4f4; margin: 0; }
+        .container { max-width: 600px; margin: 10px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        /* 1. 分頁按鈕移至最上方 */
+        .tabs { display: flex; margin-bottom: 20px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+        .tab { flex: 1; text-align: center; padding: 15px 5px; cursor: pointer; background: #f8f9fa; color: #666; transition: 0.3s; }
+        .tab.active { background: #28a745; color: white; font-weight: bold; }
+        
+        h2 { text-align: center; color: #333; margin-top: 0; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select, button { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
-        button { background-color: #28a745; color: white; border: none; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        input, select, button { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        
+        /* 搜尋結果樣式 */
+        .search-results { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 15px; display: none; }
+        .search-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .search-item:hover { background: #f1f1f1; }
+        
+        .item-info { background: #e9ecef; padding: 15px; border-radius: 4px; margin-bottom: 15px; border-left: 5px solid #28a745; }
+        button { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
         button:hover { background-color: #218838; }
-        #resultArea { margin-top: 20px; padding: 10px; border-top: 2px solid #eee; }
-        .item-info { background: #e9ecef; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #f8f9fa; }
+
+        /* 手機優化 */
+        @media (max-width: 600px) {
+            input, select, button { font-size: 18px; padding: 15px; }
+        }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>服飾店 POS 結帳</h2>
-    
-    <div class="form-group">
-        <label>搜尋商品 (編號或名稱)</label>
-        <input type="text" id="searchInput" placeholder="輸入商品資訊..." oninput="searchItem()">
-    </div>
-
-    <div id="resultArea">
-        <p style="color: #666;">請輸入關鍵字搜尋商品...</p>
-    </div>
-
-    <div id="checkoutArea" style="display:none;">
-        <hr>
-        <div class="form-group">
-            <label>賣出數量</label>
-            <input type="number" id="sellQty" value="1" min="1">
-        </div>
-        <div class="form-group">
-            <label>支付方式</label>
-            <select id="payMethod">
-                <option value="現金">現金</option>
-                <option value="信用卡">信用卡</option>
-                <option value="轉帳">轉帳</option>
-                <option value="LINE Pay">LINE Pay</option>
-            </select>
-        </div>
-        <button onclick="submitCheckout()">確認結帳</button>
-    </div>
-</div>
-
-<script>
-    // 重要：請在此處替換為您的 GAS 部署網址
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbx7puH7LL34M7CwcCEIsoehAMWp5kIrj3F-m-tCMWwqj8AbyNy3cGCQSvq58s5hsWtn/exec"; 
-    let allItems = []; // 存儲從 Google Sheet 抓下來的庫存資料
-    let selectedItem = null;
-
-    // 頁面載入時先抓取一次庫存
-    window.onload = async () => {
-        try {
-            const response = await fetch(GAS_URL);
-            allItems = await response.json();
-            console.log("資料載入成功", allItems);
-        } catch (e) {
-            alert("資料載入失敗，請檢查 GAS 網址與權限設定");
-        }
-    };
-
-    // 搜尋功能
-    function searchItem() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const resultArea = document.getElementById('resultArea');
-        const checkoutArea = document.getElementById('checkoutArea');
-        
-        if (!query) {
-            resultArea.innerHTML = '<p style="color: #666;">請輸入關鍵字搜尋商品...</p>';
-            checkoutArea.style.display = 'none';
-            return;
-        }
-
-        // 篩選編號或名稱
-        const matches = allItems.filter(item => 
-            String(item["商品編號"]).toLowerCase().includes(query) || 
-            String(item["名稱"]).toLowerCase().includes(query)
-        );
-
-        if (matches.length > 0) {
-            selectedItem = matches[0]; // 簡單起見，取第一個匹配項
-            resultArea.innerHTML = `
-                <div class="item-info">
-                    <strong>商品：</strong> ${selectedItem["名稱"]} (${selectedItem["顏色"]}/${selectedItem["尺寸"]})<br>
-                    <strong>單價：</strong> $${selectedItem["單價"]}<br>
-                    <strong>目前庫存：</strong> ${selectedItem["庫存"]}
-                </div>
-            `;
-            checkoutArea.style.display = 'block';
-        } else {
-            resultArea.innerHTML = '<p style="color: red;">找不到該商品</p>';
-            checkoutArea.style.display = 'none';
-        }
-    }
-
-    // 提交結帳
-    async function submitCheckout() {
-        const sellQty = document.getElementById('sellQty').value;
-        const payMethod = document.getElementById('payMethod').value;
-
-        if (parseInt(sellQty) > selectedItem["庫存"]) {
-            alert("錯誤：銷售數量大於庫存！");
-            return;
-        }
-
-        if (!confirm(`確認結帳？\n商品：${selectedItem["名稱"]}\n金額：$${selectedItem["單價"] * sellQty}\n支付：${payMethod}`)) return;
-
-        // 發送 POST 請求給 GAS
-        try {
-            const response = await fetch(GAS_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    itemID: selectedItem["商品編號"],
-                    sellQty: parseInt(sellQty),
-                    payMethod: payMethod // 雖然目前 GAS 沒存支付方式，但可以傳過去備用
-                })
-            });
-            const resData = await response.json();
-
-            if (resData.result === "success") {
-                alert("結帳成功！庫存已更新。");
-                location.reload(); // 重新整理頁面更新最新資料
-            } else {
-                alert("結帳失敗：" + resData.message);
-            }
-        } catch (e) {
-            alert("連線發生錯誤");
-        }
-    }
-</script>
-<style>
-    /* 讓手機操作更舒適的樣式 */
-    @media (max-width: 600px) {
-    .container { margin: 10px; padding: 15px; width: auto; }
-    button, select, input { 
-        font-size: 18px; /* 放大文字，避免手機縮放 */
-        padding: 15px;   /* 增加點擊區域 */
-    }
-    .tab { padding: 15px 5px; font-size: 16px; }
-    }
-    
-    /* 新增分頁切換樣式 */
-    .tabs { display: flex; margin-bottom: 20px; }
-    .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; border-bottom: 2px solid #eee; }
-    .tab.active { border-bottom: 2px solid #28a745; font-weight: bold; color: #28a745; }
-    #rankTable { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    #rankTable td, #rankTable th { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-</style>
 
 <div class="container">
     <div class="tabs">
@@ -162,52 +47,194 @@
     </div>
 
     <div id="posPage">
+        <h2>結帳系統</h2>
+        
+        <div class="form-group">
+            <label>1. 關鍵字搜尋 (編號/名稱/顏色/尺寸)</label>
+            <input type="text" id="searchInput" placeholder="輸入搜尋內容..." oninput="filterItems()">
         </div>
 
+        <div id="filterSection" style="display: none;">
+            <div class="form-group">
+                <label>2. 進一步篩選顏色</label>
+                <select id="colorFilter" onchange="filterItems(true)">
+                    <option value="">所有顏色</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>3. 進一步篩選尺寸</label>
+                <select id="sizeFilter" onchange="filterItems(true)">
+                    <option value="">所有尺寸</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="searchResults" class="search-results"></div>
+
+        <div id="selectedArea" style="display:none;">
+            <div id="itemDetail" class="item-info"></div>
+            <div class="form-group">
+                <label>賣出數量</label>
+                <input type="number" id="sellQty" value="1" min="1">
+            </div>
+            <div class="form-group">
+                <label>支付方式</label>
+                <select id="payMethod">
+                    <option value="現金">現金</option>
+                    <option value="信用卡">信用卡</option>
+                    <option value="轉帳">轉帳</option>
+                    <option value="LINE Pay">LINE Pay</option>
+                </select>
+            </div>
+            <button onclick="submitCheckout()">確認結帳</button>
+        </div>
+    </div>
+
     <div id="rankPage" style="display:none;">
-        <h3>本期熱銷前 10 名</h3>
-        <table id="rankTable">
+        <h2>熱銷排行榜</h2>
+        <table>
             <thead>
                 <tr><th>商品名稱</th><th>銷售數量</th></tr>
             </thead>
-            <tbody id="rankList">
-                </tbody>
+            <tbody id="rankList"></tbody>
         </table>
     </div>
 </div>
 
 <script>
-    async function showPage(page) {
+    const GAS_URL = "您的GAS部署網址"; // 請務必替換
+    let allItems = [];
+    let selectedItem = null;
+
+    window.onload = async () => {
+        try {
+            const response = await fetch(GAS_URL);
+            allItems = await response.json();
+            console.log("資料更新成功");
+        } catch (e) {
+            alert("初始化失敗，請檢查 GAS 網址與網路連線");
+        }
+    };
+
+    function showPage(page) {
         document.getElementById('posPage').style.display = (page === 'pos' ? 'block' : 'none');
         document.getElementById('rankPage').style.display = (page === 'rank' ? 'block' : 'none');
         document.getElementById('posTab').className = (page === 'pos' ? 'tab active' : 'tab');
         document.getElementById('rankTab').className = (page === 'rank' ? 'tab active' : 'tab');
+        if (page === 'rank') loadRankings();
+    }
 
-        if (page === 'rank') {
-            loadRankings();
+    // 核心搜尋邏輯：支援多條件篩選
+    function filterItems(isDeepFilter = false) {
+        const keyword = document.getElementById('searchInput').value.toLowerCase();
+        const colorVal = document.getElementById('colorFilter').value;
+        const sizeVal = document.getElementById('sizeFilter').value;
+        const resultsDiv = document.getElementById('searchResults');
+        
+        if (!keyword && !isDeepFilter) {
+            resultsDiv.style.display = 'none';
+            document.getElementById('filterSection').style.display = 'none';
+            return;
         }
+
+        // 1. 初步篩選：根據關鍵字找編號、名稱、顏色、尺寸
+        let matches = allItems.filter(item => 
+            String(item["商品編號"]).toLowerCase().includes(keyword) || 
+            String(item["名稱"]).toLowerCase().includes(keyword) ||
+            String(item["顏色"]).toLowerCase().includes(keyword) ||
+            String(item["尺寸"]).toLowerCase().includes(keyword)
+        );
+
+        // 2. 如果有選擇特定的顏色或尺寸，進行二次過濾
+        if (colorVal) matches = matches.filter(i => i["顏色"] === colorVal);
+        if (sizeVal) matches = matches.filter(i => i["尺寸"] === sizeVal);
+
+        // 3. 更新下拉選單的選項 (當輸入關鍵字後)
+        if (!isDeepFilter) {
+            updateDropdowns(matches);
+            document.getElementById('filterSection').style.display = 'block';
+        }
+
+        // 4. 顯示結果清單
+        displayResults(matches);
+    }
+
+    function updateDropdowns(matches) {
+        const colorSelect = document.getElementById('colorFilter');
+        const sizeSelect = document.getElementById('sizeFilter');
+        
+        const colors = [...new Set(matches.map(i => i["顏色"]))];
+        const sizes = [...new Set(matches.map(i => i["尺寸"]))];
+
+        colorSelect.innerHTML = '<option value="">所有顏色</option>' + colors.map(c => `<option value="${c}">${c}</option>`).join('');
+        sizeSelect.innerHTML = '<option value="">所有尺寸</option>' + sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+
+    function displayResults(matches) {
+        const resultsDiv = document.getElementById('searchResults');
+        resultsDiv.style.display = 'block';
+        
+        if (matches.length === 0) {
+            resultsDiv.innerHTML = '<div class="search-item">找不到匹配商品</div>';
+            return;
+        }
+
+        resultsDiv.innerHTML = matches.map(item => `
+            <div class="search-item" onclick="selectItem('${item["商品編號"]}')">
+                ${item["名稱"]} - ${item["顏色"]}/${item["尺寸"]} (庫存:${item["庫存"]})
+            </div>
+        `).join('');
+    }
+
+    function selectItem(id) {
+        selectedItem = allItems.find(i => String(i["商品編號"]) === String(id));
+        document.getElementById('searchResults').style.display = 'none';
+        document.getElementById('selectedArea').style.display = 'block';
+        document.getElementById('itemDetail').innerHTML = `
+            <strong>已選商品：</strong> ${selectedItem["名稱"]}<br>
+            <strong>規格：</strong> ${selectedItem["顏色"]} / ${selectedItem["尺寸"]}<br>
+            <strong>單價：</strong> $${selectedItem["單價"]}<br>
+            <strong>庫存：</strong> ${selectedItem["庫存"]}
+        `;
+    }
+
+    async function submitCheckout() {
+        const sellQty = parseInt(document.getElementById('sellQty').value);
+        const payMethod = document.getElementById('payMethod').value;
+
+        if (sellQty > selectedItem["庫存"]) return alert("庫存不足！");
+        if (!confirm("確認結帳？")) return;
+
+        try {
+            const response = await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    itemID: selectedItem["商品編號"],
+                    sellQty: sellQty,
+                    payMethod: payMethod
+                })
+            });
+            const res = await response.json();
+            if (res.result === "success") {
+                alert("結帳成功");
+                location.reload();
+            } else {
+                alert("失敗：" + res.message);
+            }
+        } catch (e) { alert("連線錯誤"); }
     }
 
     async function loadRankings() {
-        const rankList = document.getElementById('rankList');
-        rankList.innerHTML = '載入中...';
-        
+        const list = document.getElementById('rankList');
+        list.innerHTML = '<tr><td colspan="2">載入中...</td></tr>';
         try {
-            const response = await fetch(GAS_URL + "?type=ranking");
-            const data = await response.json();
-            
-            rankList.innerHTML = data.map((item, index) => `
-                <tr>
-                    <td>${index + 1}. ${item.name}</td>
-                    <td>${item.qty} 件</td>
-                </tr>
+            const res = await fetch(GAS_URL + "?type=ranking");
+            const data = await res.json();
+            list.innerHTML = data.map((item, i) => `
+                <tr><td>${i+1}. ${item.name}</td><td>${item.qty} 件</td></tr>
             `).join('');
-        } catch (e) {
-            rankList.innerHTML = '無法載入排行資料';
-        }
+        } catch (e) { list.innerHTML = '<tr><td colspan="2">載入失敗</td></tr>'; }
     }
 </script>
-
 </body>
-
 </html>
