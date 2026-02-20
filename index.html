@@ -3,212 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>服飾店 POS 系統 - 專業管理版</title>
+    <title>SaaS POS 雲端管理平台</title>
     <style>
-        body { font-family: sans-serif; padding: 10px; background-color: #f4f4f4; margin: 0; }
-        .container { max-width: 800px; margin: 10px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: relative; }
-        .tabs { display: flex; margin-bottom: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
-        .tab { flex: 1; text-align: center; padding: 15px 5px; cursor: pointer; background: #f8f9fa; color: #666; font-size: 16px; }
+        body { font-family: sans-serif; background-color: #f4f4f4; margin: 0; padding: 10px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .login-box { text-align: center; padding: 50px 20px; }
+        .tabs { display: none; margin-bottom: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+        .tab { flex: 1; text-align: center; padding: 15px 5px; cursor: pointer; background: #f8f9fa; font-size: 14px; }
         .tab.active { background: #28a745; color: white; font-weight: bold; }
-        #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; color: white; flex-direction: column; justify-content: center; align-items: center; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #28a745; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
+        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; border: none; font-weight: bold; cursor: pointer; }
+        #loadingOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; color:white; flex-direction:column; justify-content:center; align-items:center; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #28a745; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        input, select, button { width: 100%; padding: 12px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
-        button { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
-        .filter-box { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
-        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #28a745; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 100; border: none; }
-        .item-card { border: 1px solid #eee; padding: 15px; margin-bottom: 10px; border-radius: 4px; background: #fff; display: flex; justify-content: space-between; align-items: center; }
-        .btn-delete { background: #dc3545; color: #fff; width: 80px; padding: 8px; margin: 0; }
-        #addFormSection, #addCatSection { display: none; background: #fff; border: 2px solid #28a745; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        .item-card { border: 1px solid #eee; padding: 15px; margin-bottom: 10px; background: #fff; border-radius: 4px; }
     </style>
 </head>
 <body>
-<div id="loadingOverlay"><div class="spinner"></div><div id="loadingText">處理中...</div></div>
-<button class="fab" id="fabBtn" onclick="toggleMainFab()" style="display:none;">+</button>
+
+<div id="loadingOverlay"><div class="spinner"></div><div id="loadingText">連線中...</div></div>
+
 <div class="container">
-    <div class="tabs">
-        <div class="tab active" id="posTab" onclick="showPage('pos')">前台結帳</div>
-        <div class="tab" id="rankTab" onclick="showPage('rank')">熱銷排行</div>
-        <div class="tab" id="manageTab" onclick="showPage('manage')">庫存管理</div>
-        <div class="tab" id="catTab" onclick="showPage('category')">分類管理</div>
+    <div id="loginPage" class="login-box">
+        <h2>店家登入</h2>
+        <input type="text" id="loginShopID" placeholder="請輸入店家 ID">
+        <input type="password" id="loginPassword" placeholder="請輸入店長密碼">
+        <button onclick="handleLogin()">進入系統</button>
     </div>
 
-    <div id="posPage">
-        <h2>結帳系統</h2>
-        <div class="filter-box">
-            <label>分類篩選</label>
-            <select id="posCatFilter" onchange="filterPosItems(true)"><option value="">所有分類</option></select>
-            <label>關鍵字搜尋</label>
-            <input type="text" id="searchInput" placeholder="搜尋..." oninput="filterPosItems()">
+    <div id="mainSystem" style="display:none;">
+        <div class="tabs" id="mainTabs" style="display:flex;">
+            <div class="tab active" id="posTab" onclick="showPage('pos')">前台結帳</div>
+            <div class="tab" id="manageTab" onclick="showPage('manage')">庫存管理</div>
+            <div class="tab" id="catTab" onclick="showPage('category')">分類管理</div>
+            <div class="tab" onclick="handleLogout()">登出</div>
         </div>
-        <div id="posSearchResults" style="max-height: 200px; overflow-y: auto; display: none; border: 1px solid #eee; margin-bottom: 15px;"></div>
-        <div id="selectedArea" style="display:none;">
-            <div id="itemDetail" style="background:#e9ecef; padding:15px; border-radius:4px; margin-bottom:15px; border-left:5px solid #28a745;"></div>
-            <input type="number" id="sellQty" value="1" min="1"><select id="payMethod"><option value="現金">現金</option><option value="信用卡">信用卡</option><option value="LINE Pay">LINE Pay</option></select>
-            <button onclick="submitCheckout()">確認結帳</button>
-        </div>
-    </div>
 
-    <div id="rankPage" style="display:none;">
-        <h2>熱銷排行榜</h2>
-        <table><thead><tr><th>商品名稱</th><th>銷售數量</th></tr></thead><tbody id="rankList"></tbody></table>
-    </div>
+        <div id="posPage">
+            <h3 id="displayShopName">載入中...</h3>
+            <div style="background:#fff9c4; padding:10px; border-radius:5px; margin-bottom:15px;">
+                <label>會員查詢 (手機)</label>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="memberPhone" placeholder="輸入手機號碼">
+                    <button style="width:80px;" onclick="searchMember()">查詢</button>
+                </div>
+                <div id="memberInfo" style="margin-top:5px; font-size:14px; color:#555;"></div>
+            </div>
+            <input type="text" id="searchInput" placeholder="搜尋商品..." oninput="filterPosItems()">
+            <div id="posSearchResults" style="max-height: 200px; overflow-y: auto;"></div>
+        </div>
+        
+        <div id="managePage" style="display:none;">
+            <h3>庫存管理</h3>
+            <div id="adminStockList"></div>
+        </div>
 
-    <div id="managePage" style="display:none;">
-        <div id="addFormSection">
-            <h3>新增 / 修改商品</h3>
-            <select id="m_category"></select><input type="text" id="m_id" placeholder="商品編號"><input type="text" id="m_name" placeholder="名稱"><input type="text" id="m_color" placeholder="顏色"><input type="text" id="m_size" placeholder="尺寸"><input type="number" id="m_stock" value="0"><input type="number" id="m_cost" value="0"><input type="number" id="m_price" value="0">
-            <button onclick="saveItem()">儲存商品</button><button style="background:#666;" onclick="toggleAddForm()">取消</button>
+        <div id="categoryPage" style="display:none;">
+            <h3>分類管理</h3>
+            <div id="catListArea"></div>
         </div>
-        <div class="filter-box">
-            <label>分類篩選</label>
-            <select id="adminSearchCat" onchange="filterAdminList(true)"><option value="">所有分類</option></select>
-            <label>搜尋編號或名稱</label>
-            <div id="adminIdContainer"><input type="text" id="adminSearchKeyword" placeholder="搜尋..." oninput="filterAdminList()"></div>
-        </div>
-        <div id="adminStockList"></div>
-    </div>
-
-    <div id="categoryPage" style="display:none;">
-        <div id="addCatSection">
-            <h3>新增分類</h3>
-            <input type="text" id="newCatName" placeholder="新分類名稱">
-            <button onclick="handleCategory('add')">儲存分類</button>
-            <button style="background:#666;" onclick="toggleAddCatForm()">取消</button>
-        </div>
-        <div class="filter-box">
-            <h3>分類清單搜尋</h3>
-            <input type="text" id="catSearchKeyword" placeholder="搜尋分類名稱..." oninput="filterCategoryList()">
-        </div>
-        <div id="catListArea"></div>
     </div>
 </div>
 
 <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbx7puH7LL34M7CwcCEIsoehAMWp5kIrj3F-m-tCMWwqj8AbyNy3cGCQSvq58s5hsWtn/exec";
-    let allItems = [], categories = [], currentPage = 'pos';
+    // 總部中央管理 GAS 網址
+    const CENTRAL_GAS = "您的中央管理GAS網址";
+    let CURRENT_SHOP_GAS = ""; // 登入後動態填入
+    let allItems = [];
 
-    window.onload = () => init();
-    async function toggleLoading(show, text = "處理中...") { document.getElementById('loadingText').innerText = text; document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none'; }
-    async function init() { await loadAllData(); }
-    async function loadAllData() {
-        toggleLoading(true, "數據同步中...");
+    async function toggleLoading(show, text = "處理中...") {
+        document.getElementById('loadingText').innerText = text;
+        document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+    }
+
+    // --- 登入邏輯 ---
+    async function handleLogin() {
+        const id = document.getElementById('loginShopID').value;
+        const pw = document.getElementById('loginPassword').value;
+        if (!id || !pw) return alert("請輸入 ID 與密碼");
+
+        toggleLoading(true, "驗證店家授權...");
         try {
-            const [stockRes, catRes] = await Promise.all([fetch(GAS_URL), fetch(GAS_URL + "?type=categories")]);
-            allItems = await stockRes.json();
-            categories = await catRes.json();
-            updateAllDropdowns();
-        } catch (e) { alert("讀取失敗"); }
+            const res = await fetch(`${CENTRAL_GAS}?action=login&shopID=${id}&password=${pw}`);
+            const data = await res.json();
+            if (data.result === "success") {
+                CURRENT_SHOP_GAS = data.targetGasUrl;
+                document.getElementById('displayShopName').innerText = data.shopName;
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainSystem').style.display = 'block';
+                loadInitialData();
+            } else { alert(data.message); }
+        } catch (e) { alert("無法連線到中央伺服器"); }
         toggleLoading(false);
     }
-    function updateAllDropdowns() {
-        const catHtml = '<option value="">所有分類</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
-        document.getElementById('posCatFilter').innerHTML = catHtml;
-        document.getElementById('adminSearchCat').innerHTML = catHtml;
-        document.getElementById('m_category').innerHTML = '<option value="">選擇分類</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+
+    // --- 會員查詢 (向中央 GAS 請求) ---
+    async function searchMember() {
+        const phone = document.getElementById('memberPhone').value;
+        if (!phone) return;
+        const res = await fetch(`${CENTRAL_GAS}?action=getMember&phone=${phone}`);
+        const data = await res.json();
+        const infoDiv = document.getElementById('memberInfo');
+        if (data.result === "success") {
+            infoDiv.innerHTML = `<strong>${data.data.name}</strong>，目前點數：${data.data.points}`;
+        } else {
+            infoDiv.innerText = "找不到會員資料";
+        }
     }
+
+    // --- 庫存資料處理 (向店家各自的 GAS 請求) ---
+    async function loadInitialData() {
+        toggleLoading(true, "讀取店鋪庫存...");
+        const res = await fetch(CURRENT_SHOP_GAS); // 動態使用該店網址
+        allItems = await res.json();
+        // ... 原有的數據渲染邏輯 ...
+        toggleLoading(false);
+    }
+
+    function handleLogout() { location.reload(); }
 
     function showPage(page) {
-        currentPage = page;
-        ['posPage', 'rankPage', 'managePage', 'categoryPage'].forEach(p => document.getElementById(p).style.display = 'none');
-        ['posTab', 'rankTab', 'manageTab', 'catTab'].forEach(t => document.getElementById(t).classList.remove('active'));
+        ['posPage', 'managePage', 'categoryPage'].forEach(p => document.getElementById(p).style.display = 'none');
+        ['posTab', 'manageTab', 'catTab'].forEach(t => document.getElementById(t).classList.remove('active'));
         document.getElementById(page + 'Page').style.display = 'block';
         document.getElementById(page + 'Tab').classList.add('active');
-        document.getElementById('fabBtn').style.display = (page === 'manage' || page === 'category' ? 'flex' : 'none');
-        if (page === 'manage') filterAdminList();
-        if (page === 'category') filterCategoryList();
-        if (page === 'rank') loadRankings();
     }
-
-    function toggleMainFab() {
-        if (currentPage === 'manage') toggleAddForm();
-        else if (currentPage === 'category') toggleAddCatForm();
-    }
-
-    // --- 前台邏輯 (略，同前版) ---
-    function filterPosItems(isDeep = false) {
-        const kw = document.getElementById('searchInput').value.toLowerCase();
-        const cat = document.getElementById('posCatFilter').value;
-        const resDiv = document.getElementById('posSearchResults');
-        if (!kw && !cat) { resDiv.style.display = 'none'; return; }
-        let matches = allItems.filter(i => (String(i["商品編號"]).toLowerCase().includes(kw) || String(i["名稱"]).toLowerCase().includes(kw)) && (cat === "" || i["分類"] === cat));
-        resDiv.style.display = 'block';
-        resDiv.innerHTML = matches.map(item => `<div style="padding:12px; border-bottom:1px solid #eee; cursor:pointer;" onclick="selectItem('${item["商品編號"]}')">[${item["分類"]}] ${item["名稱"]} (${item["顏色"]}/${item["尺寸"]})</div>`).join('');
-    }
-    function selectItem(id) {
-        const item = allItems.find(i => String(i["商品編號"]) === String(id));
-        document.getElementById('posSearchResults').style.display = 'none';
-        document.getElementById('selectedArea').style.display = 'block';
-        document.getElementById('itemDetail').innerHTML = `<strong>${item["名稱"]}</strong><br>規格：${item["顏色"]}/${item["尺寸"]} | 庫存：${item["庫存"]}`;
-        window.selectedItem = item;
-    }
-    async function submitCheckout() {
-        const qty = parseInt(document.getElementById('sellQty').value);
-        if (qty > window.selectedItem["庫存"]) return alert("庫存不足");
-        toggleLoading(true, "結帳中...");
-        await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "checkout", itemID: window.selectedItem["商品編號"], sellQty: qty, payMethod: document.getElementById('payMethod').value }) });
-        location.reload();
-    }
-
-    // --- 庫存管理邏輯 ---
-    function toggleAddForm() { const f = document.getElementById('addFormSection'); f.style.display = f.style.display === 'block' ? 'none' : 'block'; if(f.style.display === 'block') window.scrollTo(0,0); }
-    function filterAdminList(isCatChange = false) {
-        const cat = document.getElementById('adminSearchCat').value;
-        const idContainer = document.getElementById('adminIdContainer');
-        let matches = allItems;
-        if (cat) {
-            matches = matches.filter(i => i["分類"] === cat);
-            if (isCatChange) {
-                const names = [...new Set(matches.map(i => i["名稱"]))];
-                idContainer.innerHTML = `<select id="adminSearchKeyword" onchange="filterAdminList()"><option value="">所有商品</option>${names.map(n => `<option value="${n}">${n}</option>`).join('')}</select>`;
-            }
-        } else if (isCatChange || idContainer.querySelector('select')) {
-            idContainer.innerHTML = `<input type="text" id="adminSearchKeyword" placeholder="搜尋..." oninput="filterAdminList()">`;
-        }
-        const kw = document.getElementById('adminSearchKeyword').value.toLowerCase();
-        matches = matches.filter(i => String(i["商品編號"]).toLowerCase().includes(kw) || String(i["名稱"]).toLowerCase().includes(kw));
-        document.getElementById('adminStockList').innerHTML = matches.map(item => `<div class="item-card"><div><strong>[${item["分類"]}] ${item["名稱"]}</strong><br>庫存：${item["庫存"]} | 單價：${item["單價"]}</div><div class="btn-group"><button class="btn-edit" style="background:#ffc107; color:black; width:60px; padding:8px;" onclick="editItem('${item["商品編號"]}')">編輯</button><button class="btn-delete" onclick="deleteItem('${item["商品編號"]}')">刪除</button></div></div>`).join('');
-    }
-    async function saveItem() {
-        const data = { "商品編號": document.getElementById('m_id').value, "分類": document.getElementById('m_category').value, "名稱": document.getElementById('m_name').value, "顏色": document.getElementById('m_color').value, "尺寸": document.getElementById('m_size').value, "庫存": parseInt(document.getElementById('m_stock').value), "成本": parseInt(document.getElementById('m_cost').value), "單價": parseInt(document.getElementById('m_price').value) };
-        toggleLoading(true);
-        await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "updateItem", itemData: data }) });
-        location.reload();
-    }
-    function editItem(id) {
-        const i = allItems.find(x => String(x["商品編號"]) === String(id));
-        document.getElementById('m_id').value = i["商品編號"]; document.getElementById('m_category').value = i["分類"]; document.getElementById('m_name').value = i["名稱"]; document.getElementById('m_color').value = i["顏色"]; document.getElementById('m_size').value = i["尺寸"]; document.getElementById('m_stock').value = i["庫存"]; document.getElementById('m_cost').value = i["成本"]; document.getElementById('m_price').value = i["單價"];
-        document.getElementById('addFormSection').style.display = 'block'; window.scrollTo(0,0);
-    }
-    async function deleteItem(id) {
-        const i = allItems.find(x => String(x["商品編號"]) === String(id));
-        if (i["庫存"] > 0 && prompt("尚有庫存，確定刪除請輸入「刪除」") !== "刪除") return;
-        toggleLoading(true);
-        await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "deleteItem", itemID: id }) });
-        location.reload();
-    }
-
-    // --- 分類管理邏輯 ---
-    function toggleAddCatForm() { const f = document.getElementById('addCatSection'); f.style.display = f.style.display === 'block' ? 'none' : 'block'; if(f.style.display === 'block') window.scrollTo(0,0); }
-    function filterCategoryList() {
-        const kw = document.getElementById('catSearchKeyword').value.toLowerCase();
-        const matches = categories.filter(c => c.toLowerCase().includes(kw));
-        document.getElementById('catListArea').innerHTML = matches.map(c => `<div class="item-card"><span>${c}</span><button class="btn-delete" onclick="handleCategory('delete', '${c}')">刪除</button></div>`).join('');
-    }
-    async function handleCategory(sub, name) {
-        const catName = name || document.getElementById('newCatName').value;
-        if (!catName || (sub === 'delete' && !confirm(`確定刪除「${catName}」？`))) return;
-        toggleLoading(true);
-        await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "manageCategory", subAction: sub, catName: catName }) });
-        location.reload();
-    }
-    async function loadRankings() {
-        const res = await fetch(GAS_URL + "?type=ranking");
-        const data = await res.json();
-        document.getElementById('rankList').innerHTML = data.map((item, i) => `<tr><td>${index+1}. ${item.name}</td><td>${item.qty} 件</td></tr>`).join('');
-    }
+    
+    // 後續請將原本完整版 index.html 的功能函式（filterPosItems, submitCheckout等）
+    // 填入此處，並確保所有 fetch 請求都使用變數 CURRENT_SHOP_GAS。
 </script>
 </body>
 </html>
