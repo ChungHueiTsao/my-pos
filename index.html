@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>服飾店 POS 系統 - 專業管理版</title>
+    <title>服飾店 POS 系統 - 專業完整版</title>
     <style>
-        /* 基礎樣式 */
         body { font-family: sans-serif; padding: 10px; background-color: #f4f4f4; margin: 0; }
         .container { max-width: 800px; margin: 10px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: relative; }
         
@@ -26,19 +25,17 @@
         /* 表單與輸入框 */
         input, select, button { width: 100%; padding: 12px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
         button { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:active { opacity: 0.8; }
         
-        /* 篩選與搜尋結果 */
+        /* 篩選區塊 */
         .filter-box { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eee; }
         .search-results { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 15px; display: none; background: #fff; }
         .search-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
-        .search-item:hover { background: #f1f1f1; }
         .item-info { background: #e9ecef; padding: 15px; border-radius: 4px; margin-bottom: 15px; border-left: 5px solid #28a745; }
         
-        /* 庫存管理懸浮按鈕 (FAB) */
+        /* 懸浮按鈕 (FAB) */
         .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #28a745; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; z-index: 100; border: none; }
         
-        /* 商品卡片與管理列表 */
+        /* 管理列表卡片 */
         .item-card { border: 1px solid #eee; padding: 15px; margin-bottom: 10px; border-radius: 4px; background: #fff; line-height: 1.6; }
         .btn-group { display: flex; gap: 10px; margin-top: 10px; }
         .btn-edit { background: #ffc107; color: #000; }
@@ -50,7 +47,6 @@
 
         @media (max-width: 600px) {
             input, select, button { font-size: 18px; padding: 15px; }
-            .tab { padding: 18px 5px; }
         }
     </style>
 </head>
@@ -65,49 +61,35 @@
         <div class="tab active" id="posTab" onclick="showPage('pos')">前台結帳</div>
         <div class="tab" id="rankTab" onclick="showPage('rank')">熱銷排行</div>
         <div class="tab" id="manageTab" onclick="showPage('manage')">庫存管理</div>
+        <div class="tab" id="catTab" onclick="showPage('category')">分類管理</div>
     </div>
 
     <div id="posPage">
         <h2>結帳系統</h2>
         <div class="form-group">
             <label>關鍵字搜尋 (編號/名稱/顏色/尺寸)</label>
-            <input type="text" id="searchInput" placeholder="輸入搜尋內容..." oninput="filterPosItems()">
+            <input type="text" id="searchInput" placeholder="搜尋..." oninput="filterPosItems()">
         </div>
-
         <div id="posFilterSection" style="display: none;">
-            <div class="form-group">
-                <label>顏色篩選</label>
-                <select id="posColorFilter" onchange="filterPosItems(true)"><option value="">所有顏色</option></select>
-            </div>
-            <div class="form-group">
-                <label>尺寸篩選</label>
-                <select id="posSizeFilter" onchange="filterPosItems(true)"><option value="">所有尺寸</option></select>
-            </div>
+            <select id="posCatFilter" onchange="filterPosItems(true)"><option value="">所有分類</option></select>
+            <select id="posColorFilter" onchange="filterPosItems(true)"><option value="">所有顏色</option></select>
+            <select id="posSizeFilter" onchange="filterPosItems(true)"><option value="">所有尺寸</option></select>
         </div>
-
         <div id="posSearchResults" class="search-results"></div>
-
         <div id="selectedArea" style="display:none;">
             <div id="itemDetail" class="item-info"></div>
-            <div class="form-group">
-                <label>賣出數量</label>
-                <input type="number" id="sellQty" value="1" min="1">
-            </div>
-            <div class="form-group">
-                <label>支付方式</label>
-                <select id="payMethod">
-                    <option value="現金">現金</option>
-                    <option value="信用卡">信用卡</option>
-                    <option value="轉帳">轉帳</option>
-                    <option value="LINE Pay">LINE Pay</option>
-                </select>
-            </div>
+            <input type="number" id="sellQty" value="1" min="1" placeholder="數量">
+            <select id="payMethod">
+                <option value="現金">現金</option>
+                <option value="信用卡">信用卡</option>
+                <option value="LINE Pay">LINE Pay</option>
+            </select>
             <button onclick="submitCheckout()">確認結帳</button>
         </div>
     </div>
 
     <div id="rankPage" style="display:none;">
-        <h2>熱銷排行榜</h2>
+        <h2>熱銷排行榜 (前10名)</h2>
         <table>
             <thead><tr><th>商品名稱</th><th>銷售數量</th></tr></thead>
             <tbody id="rankList"></tbody>
@@ -116,48 +98,58 @@
 
     <div id="managePage" style="display:none;">
         <div id="addFormSection">
-            <h3>新增 / 修改商品資料</h3>
+            <h3>新增 / 修改商品</h3>
             <input type="text" id="m_id" placeholder="商品編號 (必填)">
+            <select id="m_category"><option value="">選擇分類</option></select>
             <input type="text" id="m_name" placeholder="名稱 (必填)">
             <input type="text" id="m_color" placeholder="顏色">
             <input type="text" id="m_size" placeholder="尺寸">
-            <input type="number" id="m_stock" placeholder="庫存數量">
+            <input type="number" id="m_stock" placeholder="庫存">
             <input type="number" id="m_cost" placeholder="成本">
             <input type="number" id="m_price" placeholder="單價">
-            <button onclick="saveItem()">儲存並關閉</button>
+            <button onclick="saveItem()">儲存商品</button>
             <button style="background:#666;" onclick="toggleAddForm()">取消</button>
         </div>
 
         <div class="filter-box">
-            <h3>即時庫存篩選</h3>
-            <label>商品編號/名稱</label>
+            <h3>庫存篩選</h3>
             <input type="text" id="adminSearchKeyword" placeholder="搜尋編號或名稱..." oninput="filterAdminList()">
-            
-            <label>顏色</label>
-            <div id="adminColorContainer"><input type="text" id="adminSearchColor" placeholder="輸入顏色..." oninput="filterAdminList()"></div>
-            
-            <label>尺寸</label>
-            <div id="adminSizeContainer"><input type="text" id="adminSearchSize" placeholder="輸入尺寸..." oninput="filterAdminList()"></div>
+            <div id="adminCatContainer"></div>
+            <div id="adminColorContainer"></div>
+            <div id="adminSizeContainer"></div>
         </div>
-
         <div id="adminStockList"></div>
+    </div>
+
+    <div id="categoryPage" style="display:none;">
+        <h3>分類清單管理</h3>
+        <div style="display:flex; gap:10px; margin-bottom:20px;">
+            <input type="text" id="newCatName" placeholder="新分類名稱">
+            <button style="width:100px;" onclick="handleCategory('add')">新增</button>
+        </div>
+        <div id="catListArea"></div>
     </div>
 </div>
 
 <script>
     const GAS_URL = "https://script.google.com/macros/s/AKfycbx7puH7LL34M7CwcCEIsoehAMWp5kIrj3F-m-tCMWwqj8AbyNy3cGCQSvq58s5hsWtn/exec";
     let allItems = [];
-    let selectedItem = null;
+    let categories = [];
 
-    window.onload = () => loadInitialData();
+    window.onload = () => init();
 
     async function toggleLoading(show, text = "處理中...") {
         document.getElementById('loadingText').innerText = text;
         document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
     }
 
-    async function loadInitialData() {
-        toggleLoading(true, "載入資料中...");
+    async function init() {
+        await loadData();
+        await loadCategories();
+    }
+
+    async function loadData() {
+        toggleLoading(true, "讀取庫存...");
         try {
             const res = await fetch(GAS_URL);
             allItems = await res.json();
@@ -165,73 +157,81 @@
         toggleLoading(false);
     }
 
+    async function loadCategories() {
+        const res = await fetch(GAS_URL + "?type=categories");
+        categories = await res.json();
+        const mCat = document.getElementById('m_category');
+        mCat.innerHTML = '<option value="">選擇分類</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
     function showPage(page) {
-        ['posPage', 'rankPage', 'managePage'].forEach(p => document.getElementById(p).style.display = 'none');
-        ['posTab', 'rankTab', 'manageTab'].forEach(t => document.getElementById(t).classList.remove('active'));
+        ['posPage', 'rankPage', 'managePage', 'categoryPage'].forEach(p => document.getElementById(p).style.display = 'none');
+        ['posTab', 'rankTab', 'manageTab', 'catTab'].forEach(t => document.getElementById(t).classList.remove('active'));
         document.getElementById(page + 'Page').style.display = 'block';
         document.getElementById(page + 'Tab').classList.add('active');
-        
         document.getElementById('fabBtn').style.display = (page === 'manage' ? 'flex' : 'none');
         if (page === 'rank') loadRankings();
         if (page === 'manage') loadAdminStockList();
+        if (page === 'category') renderCategoryList();
     }
 
-    // --- 前台結帳邏輯 ---
-    function filterPosItems(isDeepFilter = false) {
-        const keyword = document.getElementById('searchInput').value.toLowerCase();
-        const colorVal = document.getElementById('posColorFilter').value;
-        const sizeVal = document.getElementById('posSizeFilter').value;
-        const resultsDiv = document.getElementById('posSearchResults');
-        
-        if (!keyword && !isDeepFilter) {
-            resultsDiv.style.display = 'none';
+    // --- 前台功能 ---
+    function filterPosItems(isDeep = false) {
+        const kw = document.getElementById('searchInput').value.toLowerCase();
+        const cat = document.getElementById('posCatFilter').value;
+        const col = document.getElementById('posColorFilter').value;
+        const siz = document.getElementById('posSizeFilter').value;
+        const resDiv = document.getElementById('posSearchResults');
+
+        if (!kw && !isDeep) {
+            resDiv.style.display = 'none';
             document.getElementById('posFilterSection').style.display = 'none';
             return;
         }
 
         let matches = allItems.filter(i => 
-            String(i["商品編號"]).toLowerCase().includes(keyword) || 
-            String(i["名稱"]).toLowerCase().includes(keyword) ||
-            String(i["顏色"]).toLowerCase().includes(keyword) ||
-            String(i["尺寸"]).toLowerCase().includes(keyword)
+            String(i["商品編號"]).toLowerCase().includes(kw) || String(i["名稱"]).toLowerCase().includes(kw) ||
+            String(i["顏色"]).toLowerCase().includes(kw) || String(i["尺寸"]).toLowerCase().includes(kw) ||
+            String(i["分類"]).toLowerCase().includes(kw)
         );
 
-        if (colorVal) matches = matches.filter(i => i["顏色"] === colorVal);
-        if (sizeVal) matches = matches.filter(i => i["尺寸"] === sizeVal);
+        if (cat) matches = matches.filter(i => i["分類"] === cat);
+        if (col) matches = matches.filter(i => i["顏色"] === col);
+        if (siz) matches = matches.filter(i => i["尺寸"] === siz);
 
-        if (!isDeepFilter) {
-            const colors = [...new Set(matches.map(i => i["顏色"]))];
-            const sizes = [...new Set(matches.map(i => i["尺寸"]))];
-            document.getElementById('posColorFilter').innerHTML = '<option value="">所有顏色</option>' + colors.map(c => `<option value="${c}">${c}</option>`).join('');
-            document.getElementById('posSizeFilter').innerHTML = '<option value="">所有尺寸</option>' + sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+        if (!isDeep) {
+            const cats = [...new Set(matches.map(i => i["分類"]))];
+            const cols = [...new Set(matches.map(i => i["顏色"]))];
+            const sizs = [...new Set(matches.map(i => i["尺寸"]))];
+            document.getElementById('posCatFilter').innerHTML = '<option value="">所有分類</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('posColorFilter').innerHTML = '<option value="">所有顏色</option>' + cols.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('posSizeFilter').innerHTML = '<option value="">所有尺寸</option>' + sizs.map(s => `<option value="${s}">${s}</option>`).join('');
             document.getElementById('posFilterSection').style.display = 'block';
         }
 
-        resultsDiv.style.display = 'block';
-        resultsDiv.innerHTML = matches.map(item => `
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = matches.map(item => `
             <div class="search-item" onclick="selectItem('${item["商品編號"]}')">
-                ${item["名稱"]} (${item["顏色"]}/${item["尺寸"]}) - 庫存:${item["庫存"]}
+                [${item["分類"]}] ${item["名稱"]} (${item["顏色"]}/${item["尺寸"]}) - 庫存:${item["庫存"]}
             </div>
         `).join('');
     }
 
     function selectItem(id) {
-        selectedItem = allItems.find(i => String(i["商品編號"]) === String(id));
+        const item = allItems.find(i => String(i["商品編號"]) === String(id));
+        selectedItem = item;
         document.getElementById('posSearchResults').style.display = 'none';
         document.getElementById('selectedArea').style.display = 'block';
         document.getElementById('itemDetail').innerHTML = `
-            <strong>已選商品：</strong> ${selectedItem["名稱"]}<br>
-            <strong>規格：</strong> ${selectedItem["顏色"]} / ${selectedItem["尺寸"]}<br>
-            <strong>單價：</strong> $${selectedItem["單價"]} | <strong>庫存：</strong> ${selectedItem["庫存"]}
+            <strong>已選：</strong> [${item["分類"]}] ${item["名稱"]}<br>
+            <strong>規格：</strong> ${item["顏色"]} / ${item["尺寸"]} | <strong>單價：</strong> $${item["單價"]}
         `;
     }
 
     async function submitCheckout() {
         const qty = parseInt(document.getElementById('sellQty').value);
         if (qty > selectedItem["庫存"]) return alert("庫存不足！");
-        if (!confirm("確認結帳？")) return;
-
-        toggleLoading(true, "結帳處理中...");
+        toggleLoading(true, "結帳中...");
         try {
             const res = await fetch(GAS_URL, {
                 method: "POST",
@@ -239,75 +239,72 @@
             });
             const data = await res.json();
             if (data.result === "success") { alert("結帳成功"); location.reload(); }
-        } catch (e) { alert("連線錯誤"); }
+        } catch (e) { alert("錯誤"); }
         toggleLoading(false);
     }
 
-    // --- 排行榜邏輯 (對應 GAS name/qty) ---
+    // --- 排行榜 ---
     async function loadRankings() {
         const list = document.getElementById('rankList');
-        list.innerHTML = '<tr><td colspan="2">載入中...</td></tr>';
+        list.innerHTML = '載入中...';
         try {
             const res = await fetch(GAS_URL + "?type=ranking");
             const data = await res.json();
-            list.innerHTML = data.map((item, i) => `<tr><td>${i+1}. ${item.name}</td><td>${item.qty} 件</td></tr>`).join('') || '<tr><td colspan="2">尚無紀錄</td></tr>';
-        } catch (e) { list.innerHTML = '<tr><td colspan="2">載入失敗</td></tr>'; }
+            list.innerHTML = data.map((item, i) => `<tr><td>${i+1}. ${item.name}</td><td>${item.qty} 件</td></tr>`).join('') || '<tr><td>尚無數據</td></tr>';
+        } catch (e) { list.innerHTML = '讀取失敗'; }
     }
 
-    // --- 庫存管理邏輯 ---
+    // --- 庫存管理與篩選 ---
     function toggleAddForm() {
-        const form = document.getElementById('addFormSection');
-        form.style.display = form.style.display === 'block' ? 'none' : 'block';
-        if (form.style.display === 'block') window.scrollTo(0,0);
+        const f = document.getElementById('addFormSection');
+        f.style.display = f.style.display === 'block' ? 'none' : 'block';
     }
 
     async function loadAdminStockList() {
-        await loadInitialData();
+        await loadData();
         filterAdminList();
     }
 
     function filterAdminList() {
-        const keyword = document.getElementById('adminSearchKeyword').value.toLowerCase();
-        let matches = allItems;
-
-        if (keyword) {
-            matches = matches.filter(i => String(i["商品編號"]).toLowerCase().includes(keyword) || String(i["名稱"]).toLowerCase().includes(keyword));
-            updateAdminDropdowns(matches);
+        const kw = document.getElementById('adminSearchKeyword').value.toLowerCase();
+        let m = allItems;
+        if (kw) {
+            m = m.filter(i => String(i["商品編號"]).toLowerCase().includes(kw) || String(i["名稱"]).toLowerCase().includes(kw));
+            updateAdminSelectors(m);
         } else {
-            resetAdminFilterInputs();
+            resetAdminSelectors();
         }
-
-        const colorVal = document.getElementById('adminSearchColor').value;
-        const sizeVal = document.getElementById('adminSearchSize').value;
-        if (colorVal) matches = matches.filter(i => i["顏色"] === colorVal);
-        if (sizeVal) matches = matches.filter(i => i["尺寸"] === sizeVal);
-
-        renderAdminList(matches);
+        const c = document.getElementById('adminSearchCat')?.value;
+        const o = document.getElementById('adminSearchCol')?.value;
+        const s = document.getElementById('adminSearchSiz')?.value;
+        if (c) m = m.filter(i => i["分類"] === c);
+        if (o) m = m.filter(i => i["顏色"] === o);
+        if (s) m = m.filter(i => i["尺寸"] === s);
+        renderAdminList(m);
     }
 
-    function updateAdminDropdowns(matches) {
-        const colors = [...new Set(matches.map(i => i["顏色"]))];
-        const sizes = [...new Set(matches.map(i => i["尺寸"]))];
-        document.getElementById('adminColorContainer').innerHTML = `<select id="adminSearchColor" onchange="filterAdminList()"><option value="">所有顏色</option>${colors.map(c => `<option value="${c}">${c}</option>`).join('')}</select>`;
-        document.getElementById('adminSizeContainer').innerHTML = `<select id="adminSearchSize" onchange="filterAdminList()"><option value="">所有尺寸</option>${sizes.map(s => `<option value="${s}">${s}</option>`).join('')}</select>`;
+    function updateAdminSelectors(m) {
+        const cs = [...new Set(m.map(i => i["分類"]))];
+        const os = [...new Set(m.map(i => i["顏色"]))];
+        const ss = [...new Set(m.map(i => i["尺寸"]))];
+        document.getElementById('adminCatContainer').innerHTML = `<select id="adminSearchCat" onchange="filterAdminList()"><option value="">所有分類</option>${cs.map(x => `<option value="${x}">${x}</option>`).join('')}</select>`;
+        document.getElementById('adminColorContainer').innerHTML = `<select id="adminSearchCol" onchange="filterAdminList()"><option value="">所有顏色</option>${os.map(x => `<option value="${x}">${x}</option>`).join('')}</select>`;
+        document.getElementById('adminSizeContainer').innerHTML = `<select id="adminSearchSiz" onchange="filterAdminList()"><option value="">所有尺寸</option>${ss.map(x => `<option value="${x}">${x}</option>`).join('')}</select>`;
     }
 
-    function resetAdminFilterInputs() {
-        if (document.getElementById('adminSearchColor').tagName === 'SELECT') {
-            document.getElementById('adminColorContainer').innerHTML = `<input type="text" id="adminSearchColor" placeholder="輸入顏色..." oninput="filterAdminList()">`;
-            document.getElementById('adminSizeContainer').innerHTML = `<input type="text" id="adminSearchSize" placeholder="輸入尺寸..." oninput="filterAdminList()">`;
-        }
+    function resetAdminSelectors() {
+        document.getElementById('adminCatContainer').innerHTML = '<input type="text" id="adminSearchCat" placeholder="分類搜尋..." oninput="filterAdminList()">';
+        document.getElementById('adminColorContainer').innerHTML = '<input type="text" id="adminSearchCol" placeholder="顏色搜尋..." oninput="filterAdminList()">';
+        document.getElementById('adminSizeContainer').innerHTML = '<input type="text" id="adminSearchSiz" placeholder="尺寸搜尋..." oninput="filterAdminList()">';
     }
 
     function renderAdminList(data) {
         const div = document.getElementById('adminStockList');
         div.innerHTML = data.map(item => `
             <div class="item-card">
-                <strong>[${item["商品編號"]}] ${item["名稱"]}</strong><br>
+                <strong>[${item["分類"]}] [${item["商品編號"]}] ${item["名稱"]}</strong><br>
                 規格: ${item["顏色"]} / ${item["尺寸"]}<br>
-                <span style="color:#28a745">庫存: ${item["庫存"]}</span> | 
-                <span style="color:#666">成本: $${item["成本"]}</span> | 
-                <span style="color:#000">單價: $${item["單價"]}</span>
+                <span style="color:#28a745">庫存: ${item["庫存"]}</span> | 成本: $${item["成本"]} | 單價: $${item["單價"]}
                 <div class="btn-group">
                     <button class="btn-edit" onclick="editItem('${item["商品編號"]}')">編輯</button>
                     <button class="btn-delete" onclick="deleteItem('${item["商品編號"]}')">刪除</button>
@@ -317,8 +314,9 @@
     }
 
     async function saveItem() {
-        const item = {
+        const data = {
             "商品編號": document.getElementById('m_id').value,
+            "分類": document.getElementById('m_category').value,
             "名稱": document.getElementById('m_name').value,
             "顏色": document.getElementById('m_color').value,
             "尺寸": document.getElementById('m_size').value,
@@ -326,40 +324,63 @@
             "成本": parseInt(document.getElementById('m_cost').value || 0),
             "單價": parseInt(document.getElementById('m_price').value || 0)
         };
-        if (!item["商品編號"] || !item["名稱"]) return alert("編號與名稱必填");
-        
+        if (!data["商品編號"] || !data["名稱"]) return alert("編號與名稱必填");
         toggleLoading(true, "儲存中...");
-        try {
-            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "updateItem", itemData: item }) });
-            const data = await res.json();
-            if (data.result === "success") { alert("儲存成功"); toggleAddForm(); loadAdminStockList(); }
-        } catch (e) { alert("錯誤"); }
+        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "updateItem", itemData: data }) });
+        const resJ = await res.json();
         toggleLoading(false);
+        if (resJ.result === "success") { alert("儲存成功"); toggleAddForm(); loadAdminStockList(); }
     }
 
     function editItem(id) {
-        const item = allItems.find(i => String(i["商品編號"]) === String(id));
-        document.getElementById('m_id').value = item["商品編號"];
-        document.getElementById('m_name').value = item["名稱"];
-        document.getElementById('m_color').value = item["顏色"];
-        document.getElementById('m_size').value = item["尺寸"];
-        document.getElementById('m_stock').value = item["庫存"];
-        document.getElementById('m_cost').value = item["成本"];
-        document.getElementById('m_price').value = item["單價"];
+        const i = allItems.find(x => String(x["商品編號"]) === String(id));
+        document.getElementById('m_id').value = i["商品編號"];
+        document.getElementById('m_category').value = i["分類"];
+        document.getElementById('m_name').value = i["名稱"];
+        document.getElementById('m_color').value = i["顏色"];
+        document.getElementById('m_size').value = i["尺寸"];
+        document.getElementById('m_stock').value = i["庫存"];
+        document.getElementById('m_cost').value = i["成本"];
+        document.getElementById('m_price').value = i["單價"];
         document.getElementById('addFormSection').style.display = 'block';
         window.scrollTo(0,0);
     }
 
     async function deleteItem(id) {
-        if (!confirm("確定刪除？")) return;
+        const i = allItems.find(x => String(x["商品編號"]) === String(id));
+        if (parseInt(i["庫存"]) > 0) {
+            const txt = prompt(`尚有庫存(${i["庫存"]})，確定刪除請輸入「刪除」:`);
+            if (txt !== "刪除") return alert("取消刪除");
+        } else if (!confirm("確定刪除？")) return;
+        
         toggleLoading(true, "刪除中...");
-        try {
-            await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "deleteItem", itemID: id }) });
-            loadAdminStockList();
-        } catch (e) { alert("錯誤"); }
+        const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "deleteItem", itemID: id }) });
         toggleLoading(false);
+        loadAdminStockList();
+    }
+
+    // --- 分類管理 ---
+    function renderCategoryList() {
+        const div = document.getElementById('catListArea');
+        div.innerHTML = categories.map(c => `
+            <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee;">
+                <span>${c}</span>
+                <button style="width:60px; background:#dc3545;" onclick="handleCategory('delete', '${c}')">刪除</button>
+            </div>
+        `).join('') || '尚無分類';
+    }
+
+    async function handleCategory(sub, name) {
+        const catName = name || document.getElementById('newCatName').value;
+        if (!catName) return;
+        if (sub === 'delete' && !confirm(`確定刪除分類「${catName}」？`)) return;
+        toggleLoading(true);
+        await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "manageCategory", subAction: sub, catName: catName }) });
+        await loadCategories();
+        renderCategoryList();
+        toggleLoading(false);
+        document.getElementById('newCatName').value = '';
     }
 </script>
 </body>
 </html>
-
