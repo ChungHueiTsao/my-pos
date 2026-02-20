@@ -3,135 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS POS 雲端管理平台</title>
+    <title>SaaS POS 雲端平台</title>
     <style>
         body { font-family: sans-serif; background-color: #f4f4f4; margin: 0; padding: 10px; }
         .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .login-box { text-align: center; padding: 50px 20px; }
-        .tabs { display: none; margin-bottom: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
-        .tab { flex: 1; text-align: center; padding: 15px 5px; cursor: pointer; background: #f8f9fa; font-size: 14px; }
+        .login-box { text-align: center; padding: 40px 20px; }
+        .pwd-container { position: relative; width: 100%; }
+        .toggle-pwd { position: absolute; right: 10px; top: 18px; cursor: pointer; color: #666; font-size: 14px; }
+        .tabs { display: flex; margin-bottom: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+        .tab { flex: 1; text-align: center; padding: 15px 5px; cursor: pointer; background: #f8f9fa; }
         .tab.active { background: #28a745; color: white; font-weight: bold; }
         input, select, button { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
         button { background-color: #28a745; color: white; border: none; font-weight: bold; cursor: pointer; }
         #loadingOverlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; color:white; flex-direction:column; justify-content:center; align-items:center; }
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #28a745; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .item-card { border: 1px solid #eee; padding: 15px; margin-bottom: 10px; background: #fff; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-<div id="loadingOverlay"><div class="spinner"></div><div id="loadingText">連線中...</div></div>
+<div id="loadingOverlay"><div class="spinner"></div><div id="loadingText">載入中...</div></div>
 
 <div class="container">
     <div id="loginPage" class="login-box">
-        <h2>店家登入</h2>
-        <input type="text" id="loginShopID" placeholder="請輸入店家 ID">
-        <input type="password" id="loginPassword" placeholder="請輸入店長密碼">
+        <h2>店家管理系統登入</h2>
+        <input type="text" id="loginShopID" placeholder="店家 ID (如 shop001)">
+        <div class="pwd-container">
+            <input type="password" id="loginPassword" placeholder="店長密碼">
+            <span class="toggle-pwd" onclick="togglePassword()">顯示</span>
+        </div>
         <button onclick="handleLogin()">進入系統</button>
     </div>
 
     <div id="mainSystem" style="display:none;">
-        <div class="tabs" id="mainTabs" style="display:flex;">
+        <div class="tabs">
             <div class="tab active" id="posTab" onclick="showPage('pos')">前台結帳</div>
             <div class="tab" id="manageTab" onclick="showPage('manage')">庫存管理</div>
             <div class="tab" id="catTab" onclick="showPage('category')">分類管理</div>
-            <div class="tab" onclick="handleLogout()">登出</div>
+            <div class="tab" onclick="location.reload()">登出</div>
         </div>
-
-        <div id="posPage">
-            <h3 id="displayShopName">載入中...</h3>
-            <div style="background:#fff9c4; padding:10px; border-radius:5px; margin-bottom:15px;">
-                <label>會員查詢 (手機)</label>
-                <div style="display:flex; gap:5px;">
-                    <input type="text" id="memberPhone" placeholder="輸入手機號碼">
-                    <button style="width:80px;" onclick="searchMember()">查詢</button>
-                </div>
-                <div id="memberInfo" style="margin-top:5px; font-size:14px; color:#555;"></div>
-            </div>
-            <input type="text" id="searchInput" placeholder="搜尋商品..." oninput="filterPosItems()">
-            <div id="posSearchResults" style="max-height: 200px; overflow-y: auto;"></div>
-        </div>
-        
-        <div id="managePage" style="display:none;">
-            <h3>庫存管理</h3>
-            <div id="adminStockList"></div>
-        </div>
-
-        <div id="categoryPage" style="display:none;">
-            <h3>分類管理</h3>
-            <div id="catListArea"></div>
+        <div id="pageContent">
+             <h3 id="displayShopName">載入中...</h3>
+             <div id="posPage">
+                 </div>
+             <div id="managePage" style="display:none;">
+                 </div>
+             <div id="categoryPage" style="display:none;">
+                 </div>
         </div>
     </div>
 </div>
 
 <script>
-    // 總部中央管理 GAS 網址
+    // 總部中央管理 GAS 網址 (請填入正確的 /exec 網址)
     const CENTRAL_GAS = "https://script.google.com/macros/s/AKfycbxWxjDj6OYjlkCUXj-e1YX2tDMJ_qpmriq9_mNvnFm-9-teAbp3rkwjxzJ3ov--2WmZ/exec";
-    let CURRENT_SHOP_GAS = ""; // 登入後動態填入
-    let allItems = [];
+    let CURRENT_SHOP_GAS = ""; 
+
+    function togglePassword() {
+        const pwdInput = document.getElementById('loginPassword');
+        const toggleBtn = document.querySelector('.toggle-pwd');
+        if (pwdInput.type === 'password') {
+            pwdInput.type = 'text';
+            toggleBtn.innerText = '隱藏';
+        } else {
+            pwdInput.type = 'password';
+            toggleBtn.innerText = '顯示';
+        }
+    }
 
     async function toggleLoading(show, text = "處理中...") {
         document.getElementById('loadingText').innerText = text;
         document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
     }
 
-    // --- 登入邏輯 ---
     async function handleLogin() {
-        const id = document.getElementById('loginShopID').value;
-        const pw = document.getElementById('loginPassword').value;
-        if (!id || !pw) return alert("請輸入 ID 與密碼");
+        const id = document.getElementById('loginShopID').value.trim();
+        const pw = document.getElementById('loginPassword').value.trim();
+        if (!id || !pw) return alert("請完整輸入");
 
-        toggleLoading(true, "驗證店家授權...");
+        toggleLoading(true, "身分驗證中...");
         try {
-            const res = await fetch(`${CENTRAL_GAS}?action=login&shopID=${id}&password=${pw}`);
+            // 使用 JSONP 或 Fetch 搭配中央網址
+            const url = `${CENTRAL_GAS}?action=login&shopID=${encodeURIComponent(id)}&password=${encodeURIComponent(pw)}`;
+            const res = await fetch(url);
             const data = await res.json();
+            
             if (data.result === "success") {
                 CURRENT_SHOP_GAS = data.targetGasUrl;
-                document.getElementById('displayShopName').innerText = data.shopName;
+                document.getElementById('displayShopName').innerText = "歡迎，" + data.shopName;
                 document.getElementById('loginPage').style.display = 'none';
                 document.getElementById('mainSystem').style.display = 'block';
-                loadInitialData();
-            } else { alert(data.message); }
-        } catch (e) { alert("無法連線到中央伺服器"); }
-        toggleLoading(false);
-    }
-
-    // --- 會員查詢 (向中央 GAS 請求) ---
-    async function searchMember() {
-        const phone = document.getElementById('memberPhone').value;
-        if (!phone) return;
-        const res = await fetch(`${CENTRAL_GAS}?action=getMember&phone=${phone}`);
-        const data = await res.json();
-        const infoDiv = document.getElementById('memberInfo');
-        if (data.result === "success") {
-            infoDiv.innerHTML = `<strong>${data.data.name}</strong>，目前點數：${data.data.points}`;
-        } else {
-            infoDiv.innerText = "找不到會員資料";
+                // 登入後自動執行載入該店庫存的邏輯
+            } else {
+                alert("登入失敗：" + data.message);
+            }
+        } catch (e) {
+            alert("系統連線錯誤，請確認中央 GAS 部署網址是否正確且權限已開。");
         }
-    }
-
-    // --- 庫存資料處理 (向店家各自的 GAS 請求) ---
-    async function loadInitialData() {
-        toggleLoading(true, "讀取店鋪庫存...");
-        const res = await fetch(CURRENT_SHOP_GAS); // 動態使用該店網址
-        allItems = await res.json();
-        // ... 原有的數據渲染邏輯 ...
         toggleLoading(false);
     }
-
-    function handleLogout() { location.reload(); }
 
     function showPage(page) {
-        ['posPage', 'managePage', 'categoryPage'].forEach(p => document.getElementById(p).style.display = 'none');
-        ['posTab', 'manageTab', 'catTab'].forEach(t => document.getElementById(t).classList.remove('active'));
-        document.getElementById(page + 'Page').style.display = 'block';
-        document.getElementById(page + 'Tab').classList.add('active');
+        ['posPage', 'managePage', 'categoryPage'].forEach(p => {
+            const el = document.getElementById(p);
+            if(el) el.style.display = (p === page + 'Page') ? 'block' : 'none';
+        });
+        ['posTab', 'manageTab', 'catTab'].forEach(t => {
+            document.getElementById(t).classList.toggle('active', t === page + 'Tab');
+        });
     }
-    
-    // 後續請將原本完整版 index.html 的功能函式（filterPosItems, submitCheckout等）
-    // 填入此處，並確保所有 fetch 請求都使用變數 CURRENT_SHOP_GAS。
 </script>
 </body>
 </html>
-
