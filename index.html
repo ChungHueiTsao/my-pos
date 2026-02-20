@@ -3,36 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>服飾店 POS 系統 - 專業版</title>
+    <title>服飾店 POS 系統 - 完整功能版</title>
     <style>
+        /* 基礎樣式與手機優化 */
         body { font-family: sans-serif; padding: 10px; background-color: #f4f4f4; margin: 0; }
         .container { max-width: 800px; margin: 10px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        
+        /* 導覽分頁置頂樣式 */
         .tabs { display: flex; margin-bottom: 20px; background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
-        .tab { flex: 1; text-align: center; padding: 15px 5px; cursor: pointer; background: #f8f9fa; transition: 0.3s; }
+        .tab { flex: 1; text-align: center; padding: 15px 5px; cursor: pointer; background: #f8f9fa; color: #666; transition: 0.3s; font-size: 16px; }
         .tab.active { background: #28a745; color: white; font-weight: bold; }
         
-        /* Loading 遮罩樣式 */
+        /* Loading 遮罩 */
         #loadingOverlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 9999; color: white;
+            background: rgba(0,0,0,0.6); z-index: 9999; color: white;
             flex-direction: column; justify-content: center; align-items: center;
         }
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #28a745; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        input, select, button { width: 100%; padding: 12px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
-        button { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        h2, h3 { color: #333; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, button { width: 100%; padding: 12px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
         
-        .item-card { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 4px; position: relative; }
-        .btn-group { display: flex; gap: 5px; }
-        .btn-edit { background: #ffc107; color: black; }
-        .btn-delete { background: #dc3545; }
+        /* 搜尋結果與商品卡片 */
+        .search-results { max-height: 200px; overflow-y: auto; border: 1px solid #eee; margin-bottom: 15px; display: none; background: #fff; }
+        .search-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .search-item:hover { background: #f1f1f1; }
+        .item-info { background: #e9ecef; padding: 15px; border-radius: 4px; margin-bottom: 15px; border-left: 5px solid #28a745; }
+        
+        /* 管理頁面樣式 */
+        .item-card { border: 1px solid #eee; padding: 15px; margin-bottom: 10px; border-radius: 4px; background: #fff; }
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .btn-edit { background: #ffc107; color: #000; }
+        .btn-delete { background: #dc3545; color: #fff; }
+        button { background-color: #28a745; color: white; border: none; cursor: pointer; font-weight: bold; }
+        button:active { opacity: 0.8; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+
+        @media (max-width: 600px) {
+            input, select, button { font-size: 18px; padding: 15px; }
+            .tab { padding: 18px 5px; }
+        }
     </style>
 </head>
 <body>
 
-<div id="loadingOverlay"><div class="spinner"></div><div>處理中，請稍候...</div></div>
+<div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div id="loadingText">處理中，請稍候...</div>
+</div>
 
 <div class="container">
     <div class="tabs">
@@ -41,66 +65,200 @@
         <div class="tab" id="manageTab" onclick="showPage('manage')">庫存管理</div>
     </div>
 
-    <div id="posPage">... (請保留原搜尋結帳邏輯) ...</div>
+    <div id="posPage">
+        <h2>結帳系統</h2>
+        <div class="form-group">
+            <label>搜尋商品 (編號/名稱/顏色/尺寸)</label>
+            <input type="text" id="searchInput" placeholder="關鍵字搜尋..." oninput="filterItems()">
+        </div>
 
-    <div id="rankPage" style="display:none;">...</div>
+        <div id="filterSection" style="display: none;">
+            <div class="form-group">
+                <label>顏色篩選</label>
+                <select id="colorFilter" onchange="filterItems(true)"><option value="">所有顏色</option></select>
+            </div>
+            <div class="form-group">
+                <label>尺寸篩選</label>
+                <select id="sizeFilter" onchange="filterItems(true)"><option value="">所有尺寸</option></select>
+            </div>
+        </div>
+
+        <div id="searchResults" class="search-results"></div>
+
+        <div id="selectedArea" style="display:none;">
+            <div id="itemDetail" class="item-info"></div>
+            <div class="form-group">
+                <label>賣出數量</label>
+                <input type="number" id="sellQty" value="1" min="1">
+            </div>
+            <div class="form-group">
+                <label>支付方式</label>
+                <select id="payMethod">
+                    <option value="現金">現金</option>
+                    <option value="信用卡">信用卡</option>
+                    <option value="轉帳">轉帳</option>
+                    <option value="LINE Pay">LINE Pay</option>
+                </select>
+            </div>
+            <button onclick="submitCheckout()">確認結帳</button>
+        </div>
+    </div>
+
+    <div id="rankPage" style="display:none;">
+        <h2>熱銷排行榜</h2>
+        <table>
+            <thead><tr><th>商品名稱</th><th>銷售數量</th></tr></thead>
+            <tbody id="rankList"></tbody>
+        </table>
+    </div>
 
     <div id="managePage" style="display:none;">
-        <h3>新增 / 修改商品</h3>
-        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px;">
-            <input type="text" id="m_id" placeholder="商品編號">
-            <input type="text" id="m_name" placeholder="名稱">
+        <h3>新增 / 修改商品資料</h3>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+            <input type="text" id="m_id" placeholder="商品編號 (必填)">
+            <input type="text" id="m_name" placeholder="名稱 (必填)">
             <input type="text" id="m_color" placeholder="顏色">
             <input type="text" id="m_size" placeholder="尺寸">
-            <input type="number" id="m_stock" placeholder="庫存數量">
-            <input type="number" id="m_cost" placeholder="成本">
-            <input type="number" id="m_price" placeholder="單價">
-            <button onclick="saveItem()">儲存商品 (新增/更新)</button>
+            <input type="number" id="m_stock" placeholder="庫存數量" value="0">
+            <input type="number" id="m_cost" placeholder="成本" value="0">
+            <input type="number" id="m_price" placeholder="單價" value="0">
+            <button onclick="saveItem()">儲存商品資訊</button>
         </div>
-        <hr>
-        <h3>目前庫存清單</h3>
+        <h3>即時庫存列表</h3>
         <div id="adminStockList"></div>
     </div>
 </div>
 
 <script>
+    // 您的 GAS 部署連結
     const GAS_URL = "https://script.google.com/macros/s/AKfycbx7puH7LL34M7CwcCEIsoehAMWp5kIrj3F-m-tCMWwqj8AbyNy3cGCQSvq58s5hsWtn/exec";
     let allItems = [];
+    let selectedItem = null;
 
-    async function toggleLoading(show) {
+    // 初始化載入
+    window.onload = () => loadData();
+
+    async function toggleLoading(show, text = "處理中，請稍候...") {
+        document.getElementById('loadingText').innerText = text;
         document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
     }
 
-    async function showPage(page) {
+    async function loadData() {
+        toggleLoading(true, "讀取庫存中...");
+        try {
+            const res = await fetch(GAS_URL);
+            allItems = await res.json();
+        } catch (e) { alert("連線失敗，請檢查網路或 GAS 權限"); }
+        toggleLoading(false);
+    }
+
+    function showPage(page) {
         ['posPage', 'rankPage', 'managePage'].forEach(p => document.getElementById(p).style.display = 'none');
         ['posTab', 'rankTab', 'manageTab'].forEach(t => document.getElementById(t).classList.remove('active'));
         document.getElementById(page + 'Page').style.display = 'block';
         document.getElementById(page + 'Tab').classList.add('active');
-        if (page === 'manage') loadAdminStock();
+        if (page === 'rank') loadRankings();
+        if (page === 'manage') loadAdminStockList();
     }
 
-    // --- 管理功能：讀取清單 ---
-    async function loadAdminStock() {
-        toggleLoading(true);
-        const res = await fetch(GAS_URL);
-        allItems = await res.json();
-        const listDiv = document.getElementById('adminStockList');
-        listDiv.innerHTML = allItems.map(item => `
+    // --- 前台搜尋邏輯 ---
+    function filterItems(isDeepFilter = false) {
+        const keyword = document.getElementById('searchInput').value.toLowerCase();
+        const colorVal = document.getElementById('colorFilter').value;
+        const sizeVal = document.getElementById('sizeFilter').value;
+        const resultsDiv = document.getElementById('searchResults');
+        
+        if (!keyword && !isDeepFilter) {
+            resultsDiv.style.display = 'none';
+            document.getElementById('filterSection').style.display = 'none';
+            return;
+        }
+
+        let matches = allItems.filter(item => 
+            String(item["商品編號"]).toLowerCase().includes(keyword) || 
+            String(item["名稱"]).toLowerCase().includes(keyword) ||
+            String(item["顏色"]).toLowerCase().includes(keyword) ||
+            String(item["尺寸"]).toLowerCase().includes(keyword)
+        );
+
+        if (colorVal) matches = matches.filter(i => i["顏色"] === colorVal);
+        if (sizeVal) matches = matches.filter(i => i["尺寸"] === sizeVal);
+
+        if (!isDeepFilter) {
+            const colors = [...new Set(matches.map(i => i["顏色"]))];
+            const sizes = [...new Set(matches.map(i => i["尺寸"]))];
+            document.getElementById('colorFilter').innerHTML = '<option value="">所有顏色</option>' + colors.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('sizeFilter').innerHTML = '<option value="">所有尺寸</option>' + sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+            document.getElementById('filterSection').style.display = 'block';
+        }
+
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = matches.map(item => `
+            <div class="search-item" onclick="selectItem('${item["商品編號"]}')">
+                ${item["名稱"]} (${item["顏色"]}/${item["尺寸"]}) - 庫存:${item["庫存"]}
+            </div>
+        `).join('');
+    }
+
+    function selectItem(id) {
+        selectedItem = allItems.find(i => String(i["商品編號"]) === String(id));
+        document.getElementById('searchResults').style.display = 'none';
+        document.getElementById('selectedArea').style.display = 'block';
+        document.getElementById('itemDetail').innerHTML = `
+            <strong>已選商品：</strong> ${selectedItem["名稱"]}<br>
+            <strong>規格：</strong> ${selectedItem["顏色"]} / ${selectedItem["尺寸"]}<br>
+            <strong>單價：</strong> $${selectedItem["單價"]} | <strong>庫存：</strong> ${selectedItem["庫存"]}
+        `;
+    }
+
+    async function submitCheckout() {
+        const qty = parseInt(document.getElementById('sellQty').value);
+        const pay = document.getElementById('payMethod').value;
+        if (qty > selectedItem["庫存"]) return alert("錯誤：庫存不足！");
+        if (!confirm("確認結帳？")) return;
+
+        toggleLoading(true, "結帳處理中...");
+        try {
+            const res = await fetch(GAS_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "checkout", itemID: selectedItem["商品編號"], sellQty: qty, payMethod: pay })
+            });
+            const data = await res.json();
+            if (data.result === "success") { alert("結帳成功！"); location.reload(); }
+            else { alert("失敗：" + data.message); }
+        } catch (e) { alert("結帳發生連線錯誤"); }
+        toggleLoading(false);
+    }
+
+    // --- 排行榜邏輯 ---
+    async function loadRankings() {
+        const list = document.getElementById('rankList');
+        list.innerHTML = '<tr><td colspan="2">載入中...</td></tr>';
+        try {
+            const res = await fetch(GAS_URL + "?type=ranking");
+            const data = await res.json();
+            list.innerHTML = data.length ? data.map((item, i) => `<tr><td>${i+1}. ${item.name}</td><td>${item.qty} 件</td></tr>`).join('') : '<tr><td colspan="2">尚無銷售紀錄</td></tr>';
+        } catch (e) { list.innerHTML = '<tr><td colspan="2">載入失敗</td></tr>'; }
+    }
+
+    // --- 管理頁面邏輯 (CRUD) ---
+    async function loadAdminStockList() {
+        await loadData();
+        const div = document.getElementById('adminStockList');
+        div.innerHTML = allItems.map(item => `
             <div class="item-card">
-                <strong>${item["商品編號"]}</strong>: ${item["名稱"]} (${item["顏色"]}/${item["尺寸"]})<br>
-                庫存: ${item["庫存"]} | 成本: ${item["成本"]} | 單價: ${item["單價"]}
+                <strong>[${item["商品編號"]}] ${item["名稱"]}</strong><br>
+                規格: ${item["顏色"]}/${item["尺寸"]} | 庫存: ${item["庫存"]} | 單價: ${item["單價"]}
                 <div class="btn-group">
                     <button class="btn-edit" onclick="editItem('${item["商品編號"]}')">編輯</button>
                     <button class="btn-delete" onclick="deleteItem('${item["商品編號"]}')">刪除</button>
                 </div>
             </div>
         `).join('');
-        toggleLoading(false);
     }
 
-    // --- 管理功能：儲存 (新增或修改) ---
     async function saveItem() {
-        const itemData = {
+        const item = {
             "商品編號": document.getElementById('m_id').value,
             "名稱": document.getElementById('m_name').value,
             "顏色": document.getElementById('m_color').value,
@@ -109,16 +267,15 @@
             "成本": parseInt(document.getElementById('m_cost').value),
             "單價": parseInt(document.getElementById('m_price').value)
         };
-        if (!itemData["商品編號"] || !itemData["名稱"]) return alert("請填寫編號與名稱");
+        if (!item["商品編號"] || !item["名稱"]) return alert("請填寫商品編號與名稱");
         
-        toggleLoading(true);
-        const res = await fetch(GAS_URL, {
-            method: "POST",
-            body: JSON.stringify({ action: "updateItem", itemData: itemData })
-        });
-        const result = await res.json();
+        toggleLoading(true, "更新資料庫中...");
+        try {
+            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "updateItem", itemData: item }) });
+            const data = await res.json();
+            if (data.result === "success") { alert("資料已儲存"); loadAdminStockList(); }
+        } catch (e) { alert("連線錯誤"); }
         toggleLoading(false);
-        if (result.result === "success") { alert("儲存成功"); loadAdminStock(); }
     }
 
     function editItem(id) {
@@ -134,18 +291,16 @@
     }
 
     async function deleteItem(id) {
-        if (!confirm("確定要刪除此商品嗎？")) return;
-        toggleLoading(true);
-        const res = await fetch(GAS_URL, {
-            method: "POST",
-            body: JSON.stringify({ action: "deleteItem", itemID: id })
-        });
-        const result = await res.json();
+        if (!confirm("確定刪除此商品？此動作無法復原。")) return;
+        toggleLoading(true, "刪除中...");
+        try {
+            const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "deleteItem", itemID: id }) });
+            const data = await res.json();
+            if (data.result === "success") loadAdminStockList();
+        } catch (e) { alert("連線錯誤"); }
         toggleLoading(false);
-        if (result.result === "success") loadAdminStock();
     }
-    
-    // 原有的 submitCheckout 函式中請加入 toggleLoading(true) 與 toggleLoading(false)
 </script>
+
 </body>
 </html>
