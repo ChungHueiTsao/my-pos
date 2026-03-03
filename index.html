@@ -58,7 +58,6 @@
         </div>
 
         <main v-else class="flex-grow p-4 md:p-6 max-w-7xl mx-auto w-full">
-            
             <div v-if="view !== 'pos'" class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="relative w-full md:max-w-xs">
                     <input v-model="searchQuery" type="text" :placeholder="'搜尋' + viewName + '...'" class="p-3 pl-10 border rounded-xl w-full shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition bg-white">
@@ -135,9 +134,17 @@
                     <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">✕</button>
                 </div>
                 <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                    <div v-for="h in headers" :key="h">
-                        <label class="block text-xs font-black text-gray-500 mb-1 uppercase tracking-widest">{{ h }}</label>
-                        <input v-model="formData[h]" type="text" class="w-full p-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 outline-none transition font-medium">
+                    <div v-for="h in modalHeaders" :key="h">
+                        <label class="block text-xs font-black text-gray-500 mb-1 uppercase tracking-widest">
+                            {{ h }} <span v-if="isRequired(h)" class="text-red-500">*</span>
+                        </label>
+                        
+                        <select v-if="isCategoryField(h)" v-model="formData[h]" class="w-full p-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 outline-none transition font-medium bg-white">
+                            <option value="">請選擇</option>
+                            <option v-for="opt in getCategoryOptions(h)" :key="opt" :value="opt">{{ opt }}</option>
+                        </select>
+                        
+                        <input v-else v-model="formData[h]" type="text" :placeholder="isRequired(h) ? '必填' : ''" class="w-full p-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 outline-none transition font-medium">
                     </div>
                 </div>
                 <div class="p-6 border-t bg-gray-50 flex gap-3">
@@ -152,7 +159,6 @@
 
     <script>
         const { createApp } = Vue;
-        // 已帶入您的 GAS 系統商網址
         const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbxhA0S9U1jFa2SxbFqOGBtbyTAvYj6jmDCM6SQuSyZlJ6DLLN3UP-VKQ3dKe0Lmk_d-_w/exec";
 
         createApp({
@@ -162,21 +168,25 @@
                     storeName: '', storeApi: '',
                     login: { user: '', pass: '' },
                     inventory: [], categories: [], members: [],
-                    inventoryHeaders: [], // 庫存動態欄位
+                    inventoryHeaders: [], 
                     showModal: false, formData: {}, cart: []
                 }
             },
             computed: {
                 viewName() { return { pos: '結帳', inventory: '庫存', category: '分類', member: '會員' }[this.view]; },
                 headers() {
-                    // 根據目前分頁回傳標題
-                    if (this.view === 'inventory') {
-                        // 優先使用從 GAS 抓取的標題順序（分類插在中間）
-                        return this.inventoryHeaders.length > 0 ? this.inventoryHeaders : ['商品編號','名稱','庫存','成本','售價'];
-                    }
+                    if (this.view === 'inventory') return this.inventoryHeaders.length > 0 ? this.inventoryHeaders : ['商品編號','名稱','庫存','成本','售價'];
                     if (this.view === 'category') return ['分類名稱','選項內容'];
                     if (this.view === 'member') return ['姓名','電話','生日','累積消費','累積點數','加入日期','備註'];
                     return [];
+                },
+                // 邏輯調整 3: 彈窗顯示欄位過濾
+                modalHeaders() {
+                    if (this.view === 'member') {
+                        // 隱藏 "累積消費" 與 "加入日期"
+                        return this.headers.filter(h => h !== '累積消費' && h !== '加入日期');
+                    }
+                    return this.headers;
                 },
                 filteredData() {
                     let source = (this.view === 'pos' || this.view === 'inventory') ? this.inventory : (this.view === 'category' ? this.categories : this.members);
@@ -188,6 +198,23 @@
                 total() { return this.cart.reduce((s, i) => s + (i.售價 * i.qty), 0); }
             },
             methods: {
+                // 邏輯調整 2: 判斷是否為分類下拉欄位
+                isCategoryField(h) {
+                    if (this.view !== 'inventory') return false;
+                    return this.categories.some(c => c.分類名稱 === h);
+                },
+                getCategoryOptions(h) {
+                    const cat = this.categories.find(c => c.分類名稱 === h);
+                    if (cat && cat.選項內容) {
+                        return cat.選項內容.split(',').map(s => s.trim());
+                    }
+                    return [];
+                },
+                // 邏輯調整 3: 必填判斷
+                isRequired(h) {
+                    if (this.view === 'member') return ['姓名','電話','生日'].includes(h);
+                    return false;
+                },
                 async handleLogin() {
                     if (!this.login.user || !this.login.pass) return;
                     this.loading = true;
@@ -198,7 +225,7 @@
                             this.storeName = data.storeName;
                             this.storeApi = data.apiUrl;
                             await this.loadData();
-                            this.isLoggedIn = true; // 資料載入成功後才顯示主介面
+                            this.isLoggedIn = true;
                         } else { alert(data.msg); }
                     } catch (e) { alert("連線異常"); }
                     this.loading = false;
@@ -210,13 +237,9 @@
                         this.inventory = data.inventory || [];
                         this.categories = data.categories || [];
                         this.members = data.members || [];
-                        
-                        // 處理庫存表「動態欄位排序」：讓分類插在商品編號與名稱之間
                         if (this.inventory.length > 0) {
-                            // 獲取 GAS 傳回的第一筆物件 Key，這會遵循試算表的實體欄位順序
                             this.inventoryHeaders = Object.keys(this.inventory[0]);
                         } else {
-                            // 若無資料，則根據分類管理頁面動態生成標題順序
                             const catNames = this.categories.map(c => c.分類名稱);
                             this.inventoryHeaders = ["商品編號", ...catNames, "名稱", "庫存", "成本", "售價"];
                         }
@@ -225,11 +248,23 @@
                 openModal() { this.formData = {}; this.showModal = true; },
                 editItem(item) { this.formData = { ...item }; this.showModal = true; },
                 async saveData() {
+                    // 邏輯調整 3: 必填攔截
+                    if (this.view === 'member') {
+                        if (!this.formData['姓名'] || !this.formData['電話'] || !this.formData['生日']) {
+                            alert("請填寫必填欄位：姓名、電話、生日");
+                            return;
+                        }
+                        // 若是新增，自動帶入加入日期
+                        if (!this.formData['加入日期']) {
+                            this.formData['加入日期'] = new Date().toLocaleString();
+                        }
+                    }
+
                     this.loading = true;
                     let action = this.view === 'inventory' ? 'saveProduct' : (this.view === 'category' ? 'saveCategory' : 'saveMember');
                     try {
                         await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action, data: this.formData }) });
-                        await this.loadData(); // 儲存成功後重新同步資料與標題
+                        await this.loadData();
                         this.showModal = false;
                     } catch (e) { alert("儲存失敗"); }
                     this.loading = false;
