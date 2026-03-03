@@ -3,49 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雲端 POS 系統 - 專業版</title>
+    <title>進階雲端 POS 系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         [v-cloak] { display: none; }
         .modal-bg { background-color: rgba(0,0,0,0.5); }
-        .animate-spin-fast { animation: spin 0.6s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        /* 保持原有的登入頁動畫與視覺 */
+        .login-card { animation: slideUp 0.5s ease-out; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900">
+<body class="bg-gray-100 font-sans text-gray-900">
     <div id="app" v-cloak class="min-h-screen flex flex-col">
-        
         <nav v-if="isLoggedIn" class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
             <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
-                <div class="font-black text-xl tracking-tight flex items-center">
-                    <span class="bg-white text-indigo-700 px-2 py-1 rounded mr-2 text-sm">POS</span>
-                    {{ storeName }}
-                </div>
+                <div class="font-black text-xl tracking-tight">🏪 {{ storeName }}</div>
                 <div class="hidden md:flex space-x-6 font-medium">
-                    <button @click="view = 'pos'" :class="view === 'pos' ? 'text-yellow-300 border-b-2 border-yellow-300' : ''" class="pb-1 transition">收銀</button>
-                    <button @click="view = 'inventory'" :class="view === 'inventory' ? 'text-yellow-300 border-b-2 border-yellow-300' : ''" class="pb-1 transition">庫存管理</button>
-                    <button @click="view = 'category'" :class="view === 'category' ? 'text-yellow-300 border-b-2 border-yellow-300' : ''" class="pb-1 transition">分類設定</button>
-                    <button @click="view = 'member'" :class="view === 'member' ? 'text-yellow-300 border-b-2 border-yellow-300' : ''" class="pb-1 transition">會員管理</button>
+                    <button @click="view = 'pos'" :class="view === 'pos' ? 'text-yellow-300' : ''">收銀</button>
+                    <button @click="view = 'inventory'" :class="view === 'inventory' ? 'text-yellow-300' : ''">庫存</button>
+                    <button @click="view = 'category'" :class="view === 'category' ? 'text-yellow-300' : ''">分類管理</button>
+                    <button @click="view = 'member'" :class="view === 'member' ? 'text-yellow-300' : ''">會員</button>
                 </div>
-                <button @click="logout" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition font-bold">登出系統</button>
+                <button @click="logout" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm transition font-bold">登出</button>
             </div>
         </nav>
 
         <div v-if="!isLoggedIn" class="flex-grow flex items-center justify-center p-4">
-            <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md border-t-8 border-indigo-700">
-                <div class="text-center mb-8">
-                    <h2 class="text-3xl font-black text-indigo-900">歡迎登入</h2>
-                    <p class="text-gray-400 mt-2 text-sm font-medium">請輸入系統商分配的帳號密碼</p>
-                </div>
+            <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md login-card border-t-8 border-indigo-700">
+                <h2 class="text-3xl font-black text-center text-indigo-800 mb-8">POS 系統登入</h2>
                 <div class="space-y-4">
-                    <div class="relative">
-                        <input v-model="login.user" @keyup.enter="handleLogin" type="text" placeholder="帳號" class="w-full p-4 border-2 rounded-2xl focus:border-indigo-500 outline-none transition bg-gray-50 focus:bg-white">
-                    </div>
-                    <div class="relative">
-                        <input v-model="login.pass" @keyup.enter="handleLogin" type="password" placeholder="密碼" class="w-full p-4 border-2 rounded-2xl focus:border-indigo-500 outline-none transition bg-gray-50 focus:bg-white">
-                    </div>
-                    <button @click="handleLogin" :disabled="loading" class="w-full bg-indigo-700 text-white p-4 rounded-2xl font-bold text-lg hover:bg-indigo-800 transition disabled:opacity-70 shadow-lg flex items-center justify-center">
+                    <input v-model="login.user" @keyup.enter="handleLogin" type="text" placeholder="帳號" class="w-full p-4 border-2 rounded-xl focus:border-indigo-500 outline-none transition">
+                    <input v-model="login.pass" @keyup.enter="handleLogin" type="password" placeholder="密碼" class="w-full p-4 border-2 rounded-xl focus:border-indigo-500 outline-none transition">
+                    <button @click="handleLogin" :disabled="loading" class="w-full bg-indigo-700 text-white p-4 rounded-xl font-bold text-lg hover:bg-indigo-800 transition disabled:opacity-50 shadow-lg flex items-center justify-center">
                         <svg v-if="loading" class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -57,60 +50,56 @@
         </div>
 
         <main v-else class="flex-grow p-4 md:p-6 max-w-7xl mx-auto w-full">
-            
             <div v-if="view !== 'pos'" class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div class="relative w-full md:max-w-xs">
-                    <input v-model="searchQuery" type="text" :placeholder="'搜尋' + viewName + '...'" class="p-3 pl-10 border rounded-xl w-full shadow-sm focus:ring-2 focus:ring-indigo-400 outline-none transition">
-                    <span class="absolute left-3 top-3 text-gray-400">🔍</span>
-                </div>
-                <button @click="openModal" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold shadow-md transition active:scale-95">
+                <input v-model="searchQuery" type="text" :placeholder="'搜尋' + viewName + '...'" class="p-3 border rounded-xl w-full md:max-w-xs shadow-sm">
+                <button @click="openModal" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-bold shadow-md transition">
                     + 新增{{ viewName }}
                 </button>
             </div>
 
             <div v-if="view === 'pos'" class="flex flex-col lg:flex-row gap-6">
                 <div class="flex-grow grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    <div v-for="item in filteredData" :key="item.商品編號" @click="addToCart(item)" class="bg-white p-4 rounded-2xl shadow hover:shadow-xl cursor-pointer transition border border-gray-100 group">
-                        <div class="text-[10px] font-bold text-indigo-500 uppercase">{{ item.分類 || '未分類' }}</div>
-                        <div class="font-bold text-gray-800 my-1 truncate group-hover:text-indigo-600">{{ item.名稱 }}</div>
+                    <div v-for="item in filteredData" :key="item.商品編號" @click="addToCart(item)" class="bg-white p-4 rounded-2xl shadow hover:shadow-xl cursor-pointer transition border border-gray-100">
+                        <div class="text-[10px] font-bold text-indigo-500 uppercase">貨號: {{ item.商品編號 }}</div>
+                        <div class="font-bold text-gray-800 my-1 truncate">{{ item.名稱 }}</div>
                         <div class="text-xl font-black text-indigo-700">${{ item.售價 }}</div>
                     </div>
                 </div>
-                <div class="w-full lg:w-96 bg-white p-6 rounded-2xl shadow-xl h-fit sticky top-24 border border-indigo-100">
-                    <h3 class="text-xl font-black mb-4 border-b pb-2 text-indigo-800">結帳清單</h3>
-                    <div class="space-y-3 max-h-64 overflow-y-auto mb-6 pr-1">
-                        <div v-for="(c, i) in cart" class="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-                            <div class="text-sm font-bold">{{ c.名稱 }} x{{ c.qty }}</div>
-                            <div class="flex items-center gap-3 font-black">
-                                <span>${{ c.售價 * c.qty }}</span>
-                                <button @click="cart.splice(i, 1)" class="text-red-400 hover:text-red-600">✕</button>
+                <div class="w-full lg:w-96 bg-white p-6 rounded-2xl shadow-xl h-fit border border-gray-100 sticky top-24">
+                    <h3 class="text-xl font-black mb-4 border-b pb-2">🛒 待結清單</h3>
+                    <div class="space-y-3 max-h-64 overflow-y-auto mb-6">
+                        <div v-for="(c, i) in cart" class="flex justify-between items-center p-2 bg-gray-50 rounded-lg text-sm">
+                            <span>{{ c.名稱 }} x{{ c.qty }}</span>
+                            <div class="flex items-center gap-3">
+                                <span class="font-bold text-indigo-700">${{ c.售價 * c.qty }}</span>
+                                <button @click="cart.splice(i, 1)" class="text-red-400">✕</button>
                             </div>
                         </div>
                     </div>
-                    <div class="text-3xl font-black text-right mb-6 text-indigo-900 border-t pt-4">${{ total }}</div>
+                    <div class="text-3xl font-black text-right mb-6 border-t pt-4">${{ total }}</div>
                     <div class="grid grid-cols-2 gap-2">
-                        <button v-for="m in ['現金','信用卡','LinePay','ApplePay']" @click="checkout(m)" class="bg-indigo-600 text-white hover:bg-indigo-800 py-3 rounded-xl font-bold transition text-xs shadow-md">
+                        <button v-for="m in ['現金','信用卡','LinePay','ApplePay']" @click="checkout(m)" class="bg-indigo-600 text-white py-3 rounded-xl font-bold text-xs hover:bg-indigo-700 transition">
                             {{ m }}
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div v-if="view !== 'pos'" class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 transition-all">
+            <div v-if="view !== 'pos'" class="bg-white rounded-2xl shadow overflow-hidden border border-gray-100">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
-                        <thead class="bg-indigo-50 border-b">
+                        <thead class="bg-gray-50 border-b">
                             <tr>
-                                <th v-for="h in headers" class="p-4 text-xs font-black text-indigo-900 uppercase">{{ h }}</th>
-                                <th class="p-4 text-xs font-black text-indigo-900 uppercase">操作</th>
+                                <th v-for="h in headers" class="p-4 text-xs font-bold text-gray-500 uppercase">{{ h }}</th>
+                                <th class="p-4 text-xs font-bold text-gray-500 uppercase">操作</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            <tr v-for="row in filteredData" class="hover:bg-indigo-50/50 transition duration-150">
-                                <td v-for="h in headers" class="p-4 text-sm font-medium text-gray-600">{{ row[h] }}</td>
-                                <td class="p-4 flex gap-3">
+                            <tr v-for="row in filteredData" class="hover:bg-indigo-50/30 transition">
+                                <td v-for="h in headers" class="p-4 text-sm">{{ row[h] }}</td>
+                                <td class="p-4 flex gap-2">
                                     <button @click="editItem(row)" class="text-indigo-600 font-bold hover:underline">編輯</button>
-                                    <button @click="deleteItem(row)" class="text-red-400 font-bold hover:underline">刪除</button>
+                                    <button @click="deleteItem(row)" class="text-red-500 font-bold hover:underline">刪除</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -120,21 +109,21 @@
         </main>
 
         <div v-if="showModal" class="fixed inset-0 modal-bg z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+            <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
                 <div class="p-6 border-b bg-indigo-50 flex justify-between items-center">
-                    <h3 class="text-xl font-black text-indigo-800">編輯{{ viewName }}</h3>
-                    <button @click="showModal = false" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">✕</button>
+                    <h3 class="text-xl font-bold text-indigo-800">編輯 {{ viewName }}</h3>
+                    <button @click="showModal = false" class="text-gray-400 text-2xl">✕</button>
                 </div>
                 <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
                     <div v-for="h in headers" :key="h">
-                        <label class="block text-xs font-black text-gray-500 mb-1 uppercase tracking-widest">{{ h }}</label>
-                        <input v-model="formData[h]" type="text" class="w-full p-3 border-2 border-gray-100 rounded-xl focus:border-indigo-500 outline-none transition">
+                        <label class="block text-xs font-bold text-gray-500 mb-1">{{ h }}</label>
+                        <input v-model="formData[h]" type="text" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
                     </div>
                 </div>
                 <div class="p-6 border-t bg-gray-50 flex gap-3">
-                    <button @click="showModal = false" class="flex-1 py-4 border-2 rounded-xl font-bold text-gray-400 hover:bg-gray-100 transition">取消</button>
-                    <button @click="saveData" :disabled="loading" class="flex-1 py-4 bg-indigo-700 text-white rounded-xl font-bold hover:bg-indigo-800 transition shadow-lg">
-                        {{ loading ? '正在同步數據...' : '確認儲存' }}
+                    <button @click="showModal = false" class="flex-1 py-3 border rounded-xl text-gray-400 font-bold">取消</button>
+                    <button @click="saveData" :disabled="loading" class="flex-1 py-3 bg-indigo-700 text-white rounded-xl font-bold shadow-lg">
+                        {{ loading ? '傳送中...' : '確認儲存' }}
                     </button>
                 </div>
             </div>
@@ -143,7 +132,6 @@
 
     <script>
         const { createApp } = Vue;
-        // 已帶入系統商 GAS 網址
         const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbxhA0S9U1jFa2SxbFqOGBtbyTAvYj6jmDCM6SQuSyZlJ6DLLN3UP-VKQ3dKe0Lmk_d-_w/exec";
 
         createApp({
@@ -153,14 +141,14 @@
                     storeName: '', storeApi: '',
                     login: { user: '', pass: '' },
                     inventory: [], categories: [], members: [],
-                    inventoryHeaders: [], // 儲存庫存表的動態標題
+                    inventoryHeaders: [], 
                     showModal: false, formData: {}, cart: []
                 }
             },
             computed: {
                 viewName() { return { pos: '收銀', inventory: '庫存', category: '分類', member: '會員' }[this.view]; },
                 headers() {
-                    if (this.view === 'inventory') return this.inventoryHeaders;
+                    if (this.view === 'inventory') return this.inventoryHeaders.length ? this.inventoryHeaders : ['商品編號','名稱','庫存','成本','售價'];
                     if (this.view === 'category') return ['分類名稱','選項內容'];
                     if (this.view === 'member') return ['姓名','電話','生日','累積消費','累積點數','加入日期','備註'];
                     return [];
@@ -169,13 +157,13 @@
                     let source = (this.view === 'pos' || this.view === 'inventory') ? this.inventory : (this.view === 'category' ? this.categories : this.members);
                     if (!this.searchQuery) return source;
                     const q = this.searchQuery.toLowerCase();
-                    return source.filter(i => Object.values(i).some(val => String(val).toLowerCase().includes(q)));
+                    return source.filter(i => Object.values(i).some(v => String(v).toLowerCase().includes(q)));
                 },
                 total() { return this.cart.reduce((s, i) => s + (i.售價 * i.qty), 0); }
             },
             methods: {
                 async handleLogin() {
-                    if (!this.login.user || !this.login.pass) { alert("請輸入帳號密碼"); return; }
+                    if (!this.login.user || !this.login.pass) return;
                     this.loading = true;
                     try {
                         const res = await fetch(CENTRAL_API_URL, { method: 'POST', body: JSON.stringify({ username: this.login.user, password: this.login.pass }) });
@@ -186,23 +174,26 @@
                             await this.loadData();
                             this.isLoggedIn = true;
                         } else { alert(data.msg); }
-                    } catch (e) { alert("系統商連線異常"); }
+                    } catch (e) { alert("連線失敗"); }
                     this.loading = false;
                 },
                 async loadData() {
-                    const res = await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
-                    const data = await res.json();
-                    this.inventory = data.inventory || [];
-                    this.categories = data.categories || [];
-                    this.members = data.members || [];
-                    
-                    // 從第一筆資料動態提取庫存表標題，確保排序與 GAS 端一致
-                    if (this.inventory.length > 0) {
-                        this.inventoryHeaders = Object.keys(this.inventory[0]);
-                    } else {
-                        // 若無資料，至少顯示預設結構
-                        this.inventoryHeaders = ['商品編號','名稱','庫存','成本','售價'];
-                    }
+                    try {
+                        const res = await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
+                        const data = await res.json();
+                        this.inventory = data.inventory || [];
+                        this.categories = data.categories || [];
+                        this.members = data.members || [];
+                        
+                        // 動態抓取庫存表欄位，解決消失問題
+                        if (this.inventory.length > 0) {
+                            this.inventoryHeaders = Object.keys(this.inventory[0]);
+                        } else {
+                            // 若試算表是空的，則手動根據分類重組標題
+                            const dynamicCats = this.categories.map(c => c.分類名稱);
+                            this.inventoryHeaders = ["商品編號", ...dynamicCats, "名稱", "庫存", "成本", "售價"];
+                        }
+                    } catch (e) { console.error("資料載入出錯", e); }
                 },
                 openModal() { this.formData = {}; this.showModal = true; },
                 editItem(item) { this.formData = { ...item }; this.showModal = true; },
@@ -211,35 +202,32 @@
                     let action = this.view === 'inventory' ? 'saveProduct' : (this.view === 'category' ? 'saveCategory' : 'saveMember');
                     try {
                         const res = await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action, data: this.formData }) });
-                        const result = await res.json();
-                        if (result.success) {
-                            this.showModal = false;
-                            await this.loadData();
-                        } else { alert("儲存失敗"); }
-                    } catch (e) { alert("網路傳輸異常"); }
+                        await this.loadData();
+                        this.showModal = false;
+                    } catch (e) { alert("儲存失敗"); }
                     this.loading = false;
                 },
                 async deleteItem(row) {
-                    if(!confirm("確定要刪除嗎？")) return;
-                    let info = this.view === 'inventory' ? {k:'商品編號',v:row.商品編號,s:'庫存表'} : (this.view === 'category' ? {k:'分類名稱',v:row.分類名稱,s:'分類管理'} : {k:'電話',v:row.電話,s:'會員表'});
-                    await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action: 'deleteData', sheetName: info.s, idKey: info.k, idValue: info.v }) });
+                    if(!confirm("確定刪除？")) return;
+                    let sName = this.view==='inventory'?'庫存表':(this.view==='category'?'分類管理':'會員表');
+                    let idK = this.view==='inventory'?'商品編號':(this.view==='category'?'分類名稱':'電話');
+                    await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action: 'deleteData', sheetName: sName, idKey: idK, idValue: row[idK] }) });
                     await this.loadData();
                 },
                 addToCart(item) {
-                    const exist = this.cart.find(c => c.商品編號 === item.商品編號);
-                    if (exist) exist.qty++; else this.cart.push({ ...item, qty: 1 });
+                    const ex = this.cart.find(c => c.商品編號 === item.商品編號);
+                    if (ex) ex.qty++; else this.cart.push({ ...item, qty: 1 });
                 },
                 async checkout(method) {
                     if (!this.cart.length) return;
                     this.loading = true;
-                    for (let item of this.cart) {
-                        const saleData = { "時間": new Date().toLocaleString(), "商品編號": item.商品編號, "名稱": item.名稱, "數量": item.qty, "支付方式": method, "金額": item.售價 * item.qty, "折扣": 0, "利潤": (item.售價 - item.成本) * item.qty };
-                        await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action: 'addSale', data: saleData }) });
+                    for (let it of this.cart) {
+                        const sale = { "時間": new Date().toLocaleString(), "商品編號": it.商品編號, "名稱": it.名稱, "數量": it.qty, "支付方式": method, "金額": it.售價 * it.qty, "折扣": 0, "利潤": (it.售價 - it.成本) * it.qty };
+                        await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action: 'addSale', data: sale }) });
                     }
-                    this.cart = [];
-                    await this.loadData();
+                    this.cart = []; await this.loadData();
                     this.loading = false;
-                    alert("結帳完畢");
+                    alert("結帳成功");
                 },
                 logout() { location.reload(); }
             }
