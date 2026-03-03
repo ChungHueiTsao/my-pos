@@ -3,108 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雲端 POS 系統</title>
+    <title>極簡雲端 POS 系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
-<body class="bg-gray-100">
-    <div id="app">
-        <nav class="bg-indigo-600 text-white p-4 shadow-md flex justify-between items-center">
-            <h1 class="font-bold text-lg">🏪 {{ storeName || '雲端 POS' }}</h1>
-            <div v-if="isLoggedIn" class="space-x-4 text-sm">
-                <button @click="view = 'sales'">收銀</button>
-                <button @click="view = 'inventory'">庫存</button>
-                <button @click="logout" class="bg-red-500 px-2 py-1 rounded">登出</button>
+<body class="bg-gray-50">
+    <div id="app" class="min-h-screen">
+        <nav v-if="isLoggedIn" class="bg-slate-800 text-white p-4 flex justify-between items-center sticky top-0 z-50 shadow-lg">
+            <div class="font-bold text-xl">🏪 {{ storeName }}</div>
+            <div class="flex gap-4 overflow-x-auto text-sm">
+                <button @click="view = 'pos'" :class="view === 'pos' ? 'text-yellow-400' : ''">收銀</button>
+                <button @click="view = 'inventory'" :class="view === 'inventory' ? 'text-yellow-400' : ''">庫存</button>
+                <button @click="logout" class="bg-red-600 px-3 py-1 rounded">登出</button>
             </div>
         </nav>
 
-        <div v-if="!isLoggedIn" class="max-w-md mx-auto mt-20 p-6 bg-white rounded-lg shadow">
-            <h2 class="text-2xl font-bold mb-4">系統登入</h2>
-            <input v-model="loginData.user" type="text" placeholder="帳號" class="w-full border p-2 mb-2">
-            <input v-model="loginData.pass" type="password" placeholder="密碼" class="w-full border p-2 mb-4">
-            <button @click="handleLogin" class="w-full bg-indigo-600 text-white py-2 rounded">進入系統</button>
+        <div v-if="!isLoggedIn" class="flex items-center justify-center h-screen">
+            <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm border border-gray-100">
+                <h2 class="text-3xl font-extrabold text-slate-800 mb-6 text-center">POS 系統登入</h2>
+                <div class="space-y-4">
+                    <input v-model="login.user" type="text" placeholder="帳號" class="w-full border-2 p-3 rounded-lg focus:border-slate-800 outline-none">
+                    <input v-model="login.pass" type="password" placeholder="密碼" class="w-full border-2 p-3 rounded-lg focus:border-slate-800 outline-none">
+                    <button @click="handleLogin" :disabled="loading" class="w-full bg-slate-800 text-white py-3 rounded-lg font-bold hover:bg-slate-700 transition">
+                        {{ loading ? '驗證中...' : '登入系統' }}
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <div v-else class="p-4">
-            <div v-if="view === 'sales'" class="flex flex-col md:flex-row gap-4">
-                <div class="flex-grow grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div v-for="item in inventory" :key="item.商品編號" 
-                         @click="addToCart(item)"
-                         class="bg-white p-3 rounded shadow cursor-pointer hover:border-indigo-500 border-2 border-transparent">
-                        <div class="text-xs text-gray-500">{{ item.分類 }}</div>
-                        <div class="font-bold">{{ item.名稱 }}</div>
-                        <div class="text-indigo-600 font-bold">${{ item.售價 }}</div>
+        <main v-else class="p-4 max-w-7xl mx-auto">
+            <div v-if="view === 'pos'" class="flex flex-col lg:flex-row gap-6">
+                <div class="flex-grow grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div v-for="item in inventory" :key="item.商品編號" @click="addToCart(item)" 
+                         class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition">
+                        <span class="text-[10px] bg-slate-100 px-2 py-1 rounded text-gray-500 uppercase font-bold">{{ item.分類 }}</span>
+                        <div class="font-bold text-lg mt-1 text-slate-800">{{ item.名稱 }}</div>
+                        <div class="text-blue-600 font-black text-xl mt-2">${{ item.售價 }}</div>
+                        <div class="text-xs text-gray-400 mt-1">庫存: {{ item.庫存 }}</div>
                     </div>
                 </div>
 
-                <div class="w-full md:w-80 bg-white p-4 rounded shadow">
-                    <h3 class="font-bold border-b pb-2 mb-2">待結帳清單</h3>
-                    <div v-for="c in cart" class="flex justify-between text-sm mb-1">
-                        <span>{{ c.名稱 }} x {{ c.qty }}</span>
-                        <span>${{ c.售價 * c.qty }}</span>
+                <div class="w-full lg:w-96 bg-white p-6 rounded-xl shadow-xl h-fit sticky top-24 border border-gray-100">
+                    <h3 class="text-xl font-bold mb-4 border-b pb-2">待結清單</h3>
+                    <div class="max-h-60 overflow-y-auto mb-4">
+                        <div v-for="(c, idx) in cart" class="flex justify-between items-center mb-3 bg-gray-50 p-2 rounded">
+                            <div>
+                                <div class="font-medium">{{ c.名稱 }}</div>
+                                <div class="text-xs text-gray-400">${{ c.售價 }} x {{ c.qty }}</div>
+                            </div>
+                            <button @click="cart.splice(idx, 1)" class="text-red-400">✕</button>
+                        </div>
                     </div>
-                    <hr class="my-2">
-                    <div class="text-xl font-bold text-right mb-4">總計: ${{ totalAmount }}</div>
+                    <div class="text-2xl font-black text-right mb-6 text-slate-900 border-t pt-4">總額: ${{ total }}</div>
                     <div class="grid grid-cols-2 gap-2">
-                        <button v-for="pay in ['現金', '信用卡', 'LinePay']" 
-                                @click="checkout(pay)"
-                                class="bg-gray-100 py-2 rounded text-sm hover:bg-gray-200">
-                            {{ pay }}
+                        <button v-for="m in ['現金', '信用卡', 'LinePay', 'ApplePay']" @click="doCheckout(m)"
+                                class="bg-slate-100 py-3 rounded-lg text-sm font-bold hover:bg-slate-800 hover:text-white transition">
+                            {{ m }}
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+
+            <div v-if="view === 'inventory'" class="bg-white rounded-xl shadow overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-800 text-white">
+                        <tr>
+                            <th class="p-4">編號</th>
+                            <th class="p-4">名稱</th>
+                            <th class="p-4">分類</th>
+                            <th class="p-4 text-right">售價</th>
+                            <th class="p-4 text-right">庫存</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="i in inventory" class="border-b hover:bg-gray-50">
+                            <td class="p-4 text-sm">{{ i.商品編號 }}</td>
+                            <td class="p-4 font-bold">{{ i.名稱 }}</td>
+                            <td class="p-4 text-sm text-gray-500">{{ i.分類 }}</td>
+                            <td class="p-4 text-right font-bold text-blue-600">${{ i.售價 }}</td>
+                            <td class="p-4 text-right" :class="i.庫存 < 5 ? 'text-red-500 font-bold' : ''">{{ i.庫存 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
     </div>
 
     <script>
         const { createApp } = Vue;
-        const CENTRAL_GAS_URL = "https://script.google.com/macros/s/AKfycbzzXeTLcSrdIq-fQP91WE-2rMKqNqp67ZKZLhLZhbo8zRsnM8pVxQCvner9e0T881h-Sw/exec";
+        // ！！！請將下方改為您的系統商 GAS 網址 ！！！
+        const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbzzXeTLcSrdIq-fQP91WE-2rMKqNqp67ZKZLhLZhbo8zRsnM8pVxQCvner9e0T881h-Sw/exec";
 
         createApp({
             data() {
                 return {
-                    isLoggedIn: false,
-                    view: 'sales',
-                    storeName: '',
-                    storeGasUrl: '',
-                    loginData: { user: '', pass: '' },
-                    inventory: [], // 從 GAS 撈取
-                    cart: []
+                    isLoggedIn: false, view: 'pos', loading: false,
+                    storeName: '', storeApi: '',
+                    login: { user: '', pass: '' },
+                    inventory: [], cart: []
                 }
+            },
+            computed: {
+                total() { return this.cart.reduce((s, i) => s + (i.售價 * i.qty), 0); }
             },
             methods: {
                 async handleLogin() {
-                    // 呼叫系統商 GAS 驗證
-                    const res = await fetch(CENTRAL_GAS_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ username: this.loginData.user, password: this.loginData.pass })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        this.isLoggedIn = true;
-                        this.storeName = data.storeName;
-                        this.storeGasUrl = data.apiUrl;
-                        this.loadStoreData();
-                    } else { alert('登入失敗'); }
+                    this.loading = true;
+                    try {
+                        const res = await fetch(CENTRAL_API_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({ username: this.login.user, password: this.login.pass })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.storeName = data.storeName;
+                            this.storeApi = data.apiUrl;
+                            this.isLoggedIn = true;
+                            this.loadData();
+                        } else { alert(data.msg); }
+                    } catch (e) { alert("登入連線失敗"); }
+                    this.loading = false;
                 },
-                async loadStoreData() {
-                    // 呼叫店家專屬 GAS 撈取資料
-                    const res = await fetch(this.storeGasUrl, {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'getData' })
-                    });
+                async loadData() {
+                    const res = await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
                     const data = await res.json();
                     this.inventory = data.inventory;
                 },
                 addToCart(item) {
-                    this.cart.push({ ...item, qty: 1 });
+                    const exist = this.cart.find(c => c.商品編號 === item.商品編號);
+                    if (exist) exist.qty++;
+                    else this.cart.push({ ...item, qty: 1 });
                 },
-                async checkout(method) {
-                    // 結帳邏輯並傳送至 GAS...
-                    alert('已使用 ' + method + ' 結帳完成！');
+                async doCheckout(method) {
+                    if (this.cart.length === 0) return;
+                    for (let item of this.cart) {
+                        const saleData = {
+                            "時間": new Date().toLocaleString(),
+                            "商品編號": item.商品編號,
+                            "名稱": item.名稱,
+                            "數量": item.qty,
+                            "支付方式": method,
+                            "金額": item.售價 * item.qty,
+                            "折扣": 0,
+                            "利潤": (item.售價 - item.成本) * item.qty
+                        };
+                        await fetch(this.storeApi, { method: 'POST', body: JSON.stringify({ action: 'addSale', data: saleData }) });
+                    }
+                    alert("結帳成功！試算表已更新。");
                     this.cart = [];
-                }
+                    this.loadData();
+                },
+                logout() { location.reload(); }
             }
         }).mount('#app');
     </script>
