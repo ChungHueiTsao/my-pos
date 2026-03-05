@@ -3,120 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>旗艦 POS 系統</title>
+    <title>旗艦 POS - 2026 專業版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         [v-cloak] { display: none; }
-        /* 手機版字體與佈局優化 */
-        @media (max-width: 768px) {
-            html { font-size: 16px; }
-            .main-content { padding-bottom: 90px; }
-        }
-        .active-tab { background: white !important; color: #4338ca !important; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .active-mobile-tab { color: white !important; background: rgba(255,255,255,0.2); border-radius: 12px; }
+        @media (max-width: 768px) { html { font-size: 15px; } .main-content { padding-bottom: 80px; } }
         .spinner { animation: spin 1s linear infinite; width: 1.2rem; height: 1.2rem; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .active-tab { background: white !important; color: #4338ca !important; }
+        /* 橫向捲軸優化 */
+        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
     <div id="app" v-cloak class="min-h-screen flex flex-col">
         
-        <nav v-if="isLoggedIn" class="bg-[#4338ca] text-white p-4 hidden md:flex justify-between items-center sticky top-0 z-50 shadow-lg">
-            <div class="flex items-center gap-6">
-                <span class="text-xl font-black tracking-tighter">{{ storeName }}</span>
-                <div class="flex bg-indigo-900/40 rounded-2xl p-1 border border-indigo-500/30">
-                    <button v-for="(label, key) in menuItems" @click="view = key" :class="view === key ? 'active-tab' : 'text-indigo-100'" class="px-5 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap">{{ label }}</button>
+        <nav v-if="isLoggedIn" class="bg-[#4338ca] text-white p-4 sticky top-0 z-50 shadow-md flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <span class="font-black text-lg">{{ storeName }}</span>
+                <div class="hidden md:flex bg-indigo-900/40 rounded-xl p-1 overflow-x-auto">
+                    <button v-for="(label, key) in menuItems" @click="view = key" :class="view === key ? 'active-tab' : ''" class="px-4 py-2 rounded-lg font-bold text-xs whitespace-nowrap">{{ label }}</button>
                 </div>
             </div>
-            <button @click="logout" class="bg-red-500/10 text-red-200 px-4 py-2 rounded-xl text-xs font-bold border border-red-500/20">退出</button>
+            <button @click="logout" class="text-xs opacity-70">退出</button>
         </nav>
 
-        <div v-if="isLoggedIn" class="md:hidden fixed bottom-0 inset-x-0 bg-[#4338ca] text-indigo-200 z-50 flex justify-around p-3 shadow-2xl">
-            <button v-for="(label, key) in menuItems" @click="view = key" :class="view === key ? 'active-mobile-tab' : ''" class="flex flex-col items-center p-2 flex-1 transition-all">
-                <span class="text-sm font-black">{{ label.substring(0,2) }}</span>
-            </button>
+        <div v-if="isLoggedIn" class="md:hidden fixed bottom-0 inset-x-0 bg-[#4338ca] text-white z-50 flex justify-around p-3 shadow-2xl overflow-x-auto">
+            <button v-for="(label, key) in menuItems" @click="view = key" :class="view === key ? 'border-t-4 border-white' : ''" class="px-2 py-1 text-xs font-black">{{ label.substring(0,2) }}</button>
         </div>
 
         <main v-if="!isLoggedIn" class="flex-grow flex items-center justify-center p-6 bg-slate-900">
-            <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm text-center">
-                <h2 class="text-3xl font-black text-slate-800 mb-8">POS 登入</h2>
-                <div class="space-y-4">
-                    <input v-model="loginForm.user" type="text" placeholder="帳號" class="w-full p-4 bg-slate-50 border-2 rounded-2xl font-bold focus:border-indigo-500 outline-none" :disabled="loading">
-                    <input v-model="loginForm.pass" type="password" placeholder="密碼" class="w-full p-4 bg-slate-50 border-2 rounded-2xl font-bold focus:border-indigo-500 outline-none" :disabled="loading">
-                    <button @click="handleLogin" :disabled="loading" class="w-full bg-[#4338ca] text-white p-5 rounded-2xl font-black text-xl flex justify-center items-center gap-3 active:scale-95 transition-all">
-                        <span v-if="loading" class="spinner"></span>
-                        <span>{{ loading ? '登入中...' : '確認' }}</span>
-                    </button>
-                </div>
+            <div class="bg-white p-10 rounded-[2rem] shadow-2xl w-full max-w-sm">
+                <h2 class="text-2xl font-black mb-6 text-center">系統登入</h2>
+                <input v-model="loginForm.user" type="text" placeholder="帳號" class="w-full p-4 mb-4 bg-slate-50 border rounded-2xl outline-none focus:border-indigo-500">
+                <input v-model="loginForm.pass" type="password" placeholder="密碼" class="w-full p-4 mb-6 bg-slate-50 border rounded-2xl outline-none focus:border-indigo-500">
+                <button @click="handleLogin" :disabled="loading" class="w-full bg-[#4338ca] text-white p-4 rounded-2xl font-black flex justify-center items-center gap-2">
+                    <span v-if="loading" class="spinner"></span>登入
+                </button>
             </div>
         </main>
 
-        <main v-else class="flex-grow p-4 md:p-6 main-content max-w-7xl mx-auto w-full">
+        <main v-else class="flex-grow p-4 main-content max-w-7xl mx-auto w-full">
             
-            <div v-if="view === 'pos'" class="flex flex-col lg:flex-row gap-6 h-full">
+            <div v-if="view === 'pos'" class="flex flex-col lg:flex-row gap-6">
                 <div class="flex-grow">
-                    <input v-model="posSearch" type="text" placeholder="搜尋商品名稱/編號" class="w-full p-5 rounded-2xl shadow-sm border-2 border-transparent focus:border-indigo-300 outline-none text-lg font-bold mb-4">
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[60vh] md:max-h-none custom-scrollbar pr-1">
-                        <div v-for="item in filteredInventory" :key="item.商品編號" @click="addToCart(item)" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 active:scale-95 transition-all cursor-pointer">
-                            <div class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">{{ item.商品編號 }}</div>
-                            <div class="font-black text-lg text-slate-800 truncate">{{ item.名稱 }}</div>
-                            <div class="flex justify-between mt-4 items-end">
-                                <span class="text-2xl font-black text-indigo-600">${{ item.售價 }}</span>
-                                <span class="text-xs font-bold text-slate-400">存:{{ item.庫存 }}</span>
+                    <input v-model="posSearch" type="text" placeholder="搜尋名稱/編號" class="w-full p-4 rounded-2xl border shadow-sm mb-4 outline-none">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div v-for="item in filteredInventory" @click="addToCart(item)" class="bg-white p-4 rounded-2xl shadow-sm border active:scale-95 cursor-pointer">
+                            <div class="text-[10px] text-indigo-400 font-bold">{{ item.商品編號 }}</div>
+                            <div class="font-black truncate">{{ item.名稱 }}</div>
+                            <div class="flex justify-between mt-4">
+                                <span class="font-black text-indigo-600">${{ item.售價 }}</span>
+                                <span class="text-xs text-slate-400">庫存:{{ item.庫存 }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="w-full lg:w-96 bg-white p-6 rounded-[2rem] shadow-xl border flex flex-col">
-                    <h3 class="font-black text-xl mb-4">結帳清單</h3>
-                    <div class="flex-grow overflow-y-auto min-h-[200px] mb-4 custom-scrollbar">
-                        <div v-for="(c, i) in cart" :key="i" class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-2 border">
-                            <div class="min-w-0 flex-grow">
-                                <div class="font-black text-base truncate">{{ c.名稱 }}</div>
-                                <div class="text-indigo-600 font-bold">${{ c.售價 }}</div>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <button @click="c.qty > 1 ? c.qty-- : cart.splice(i, 1)" class="w-8 h-8 bg-white border rounded-lg font-bold shadow-sm">-</button>
-                                <span class="font-bold">{{ c.qty }}</span>
-                                <button @click="c.qty++" class="w-8 h-8 bg-white border rounded-lg font-bold shadow-sm">+</button>
+                <div class="w-full lg:w-96 bg-white p-6 rounded-3xl shadow-xl border h-fit sticky top-24">
+                    <h3 class="font-black mb-4">結帳清單</h3>
+                    <div class="max-h-60 overflow-y-auto mb-4 border-b pb-4 custom-scrollbar">
+                        <div v-for="(c, i) in cart" :key="i" class="flex justify-between items-center mb-2 bg-slate-50 p-2 rounded-lg text-sm">
+                            <span class="truncate pr-2 font-bold">{{ c.名稱 }}</span>
+                            <div class="flex items-center gap-2">
+                                <button @click="c.qty > 1 ? c.qty-- : cart.splice(i, 1)" class="w-6 h-6 border rounded">-</button>
+                                <span>{{ c.qty }}</span>
+                                <button @click="c.qty++" class="w-6 h-6 border rounded">+</button>
                             </div>
                         </div>
                     </div>
-                    <div class="border-t pt-4">
-                        <div class="flex justify-between items-end mb-4 px-2">
-                            <span class="font-bold text-slate-400">總計</span>
-                            <span class="text-4xl font-black text-green-600">${{ finalTotal }}</span>
+
+                    <div class="space-y-3 mb-6">
+                        <div class="flex gap-2">
+                            <button @click="discountType = 'cash'" :class="discountType === 'cash' ? 'bg-indigo-600 text-white' : 'bg-slate-100'" class="flex-1 py-1 rounded-lg text-xs font-bold transition-all">現金折扣</button>
+                            <button @click="discountType = 'percent'" :class="discountType === 'percent' ? 'bg-indigo-600 text-white' : 'bg-slate-100'" class="flex-1 py-1 rounded-lg text-xs font-bold transition-all">比例折扣</button>
                         </div>
-                        <button @click="handleCheckout" :disabled="loading || cart.length === 0" class="w-full bg-[#4338ca] text-white py-5 rounded-2xl font-black text-2xl shadow-lg active:scale-95 flex justify-center items-center gap-3">
-                            <span v-if="loading" class="spinner"></span>
-                            <span>{{ loading ? '結帳中...' : '確認結帳' }}</span>
-                        </button>
+                        <div class="relative">
+                            <input v-model.number="discountValue" type="number" class="w-full p-3 bg-slate-50 border rounded-xl font-black outline-none" placeholder="輸入折扣金額/比例">
+                            <span class="absolute right-4 top-3 font-bold text-slate-400">{{ discountType === 'cash' ? '元' : '%' }}</span>
+                        </div>
+                        <input v-model="checkoutInfo.phone" type="text" placeholder="會員電話 (選填)" class="w-full p-3 border rounded-xl text-sm">
                     </div>
+
+                    <div class="flex justify-between items-end mb-4 px-2">
+                        <span class="text-xs font-bold text-slate-400">最終總額</span>
+                        <span class="text-3xl font-black text-green-600">${{ finalTotal }}</span>
+                    </div>
+                    <button @click="handleCheckout" :disabled="loading || cart.length === 0" class="w-full bg-[#4338ca] text-white py-4 rounded-2xl font-black flex justify-center items-center gap-2">
+                        <span v-if="loading" class="spinner"></span>結帳
+                    </button>
                 </div>
             </div>
 
-            <div v-else class="bg-white rounded-3xl p-4 md:p-8 shadow-xl h-full flex flex-col overflow-hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-black">{{ menuItems[view] }}</h2>
-                    <button v-if="view !== 'sales'" @click="openModal('add')" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold">+ 新增</button>
+            <div v-else class="bg-white rounded-3xl p-6 shadow-xl overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-black">{{ menuItems[view] }}</h2>
+                    <button v-if="!['sales','category'].includes(view)" @click="openModal('add')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm">+ 新增</button>
                 </div>
-                <div class="overflow-auto flex-grow custom-scrollbar">
-                    <table class="w-full text-left">
+                
+                <div class="table-container custom-scrollbar">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
                         <thead>
-                            <tr class="text-slate-400 text-xs uppercase tracking-widest border-b">
-                                <th v-for="h in currentHeaders" :key="h" class="pb-3 px-2 whitespace-nowrap">{{ h }}</th>
-                                <th v-if="view !== 'sales'" class="pb-3 px-2 text-right">編輯</th>
+                            <tr class="text-slate-400 border-b">
+                                <th v-for="h in currentHeaders" class="p-3">{{ h }}</th>
+                                <th v-if="!['sales','category'].includes(view)" class="p-3 text-right">操作</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="row in filteredTableData" class="border-b hover:bg-slate-50 transition-all">
-                                <td v-for="h in currentHeaders" class="py-4 px-2 font-bold text-base md:text-sm text-slate-700 whitespace-nowrap">{{ row[h] }}</td>
-                                <td v-if="view !== 'sales'" class="py-4 px-2 text-right">
-                                    <button @click="openModal('edit', row)" class="text-indigo-500 font-bold">編輯</button>
+                            <tr v-for="row in tableDataSorted" class="border-b hover:bg-slate-50">
+                                <td v-for="h in currentHeaders" class="p-3 font-medium">{{ row[h] }}</td>
+                                <td v-if="!['sales','category'].includes(view)" class="p-3 text-right">
+                                    <button @click="openModal('edit', row)" class="text-indigo-600 font-bold px-2">編輯</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -125,74 +125,82 @@
             </div>
         </main>
 
-        <div v-if="showModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
-            <div class="bg-white w-full max-w-lg rounded-t-[2rem] md:rounded-3xl overflow-hidden shadow-2xl transition-all">
-                <div class="bg-indigo-600 p-6 text-white flex justify-between items-center">
-                    <h3 class="font-black text-xl">{{ modalMode === 'add' ? '新增' : '修改' }}{{ menuItems[view] }}</h3>
-                    <button @click="showModal = false" class="text-3xl">&times;</button>
+        <div v-if="showModal" class="fixed inset-0 bg-black/60 z-[100] flex items-end md:items-center justify-center">
+            <div class="bg-white w-full max-w-lg rounded-t-3xl md:rounded-3xl overflow-hidden shadow-2xl">
+                <div class="bg-indigo-600 p-6 text-white flex justify-between">
+                    <h3 class="font-black">{{ modalMode === 'add' ? '新增' : '修改' }}資料</h3>
+                    <button @click="showModal = false" class="text-2xl">&times;</button>
                 </div>
                 <div class="p-8 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
                     <div v-for="field in currentHeaders" :key="field">
-                        <label class="block text-xs font-black text-slate-400 uppercase mb-1 tracking-widest">{{ field }}</label>
-                        <template v-if="getOptions(field).length > 0">
-                            <select v-model="formData[field]" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none focus:border-indigo-500">
-                                <option value="">請選擇{{ field }}</option>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">{{ field }}</label>
+                        <template v-if="['累積消費','加入日期','時間','訂單號'].includes(field)">
+                            <div class="w-full p-4 bg-slate-100 border rounded-2xl text-slate-400 font-bold">{{ formData[field] || '(自動生成)' }}</div>
+                        </template>
+                        <template v-else-if="getOptions(field).length > 0">
+                            <select v-model="formData[field]" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
+                                <option value="">請選擇</option>
                                 <option v-for="opt in getOptions(field)" :value="opt">{{ opt }}</option>
                             </select>
                         </template>
                         <template v-else>
-                            <input v-model="formData[field]" type="text" class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold outline-none focus:border-indigo-500">
+                            <input v-model="formData[field]" type="text" class="w-full p-4 bg-slate-50 border rounded-2xl font-bold">
                         </template>
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 flex gap-4">
-                    <button @click="showModal = false" :disabled="loading" class="flex-1 p-5 font-bold text-slate-400">取消</button>
-                    <button @click="handleSave" :disabled="loading" class="flex-1 bg-indigo-600 text-white p-5 rounded-2xl font-black shadow-xl flex justify-center items-center gap-3">
-                        <span v-if="loading" class="spinner"></span>
-                        <span class="text-lg">{{ loading ? '正在儲存...' : '儲存資料' }}</span>
+                    <button @click="handleSave" :disabled="loading" class="flex-1 bg-indigo-600 text-white p-4 rounded-2xl font-black flex justify-center items-center gap-2">
+                        <span v-if="loading" class="spinner"></span>儲存
                     </button>
                 </div>
             </div>
         </div>
+
     </div>
 
     <script>
         const { createApp } = Vue;
-        const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbzFlPOXopQYpvq4HJj31BrQ-UrOFOBpuEReFD8Oa0XcII6ZqzXUASyLS8N1ywPuwjk0AQ/exec";
+        const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbxhA0S9U1jFa2SxbFqOGBtbyTAvYj6jmDCM6SQuSyZlJ6DLLN3UP-VKQ3dKe0Lmk_d-_w/exec";
 
         createApp({
             data() {
                 return {
                     isLoggedIn: false, loading: false, view: 'pos',
-                    loginForm: { user: '', pass: '' },
                     storeName: '', storeApi: '',
+                    loginForm: { user: '', pass: '' },
                     inventory: [], member: [], sales: [], category: [],
                     cart: [], posSearch: '',
+                    discountType: 'cash', discountValue: 0,
+                    checkoutInfo: { phone: '' },
                     menuItems: { pos: '收銀', inventory: '商品管理', sales: '銷售紀錄', category: '分類管理', member: '會員資料' },
                     showModal: false, modalMode: 'add', formData: {}
                 }
             },
             computed: {
                 currentHeaders() {
-                    if (this.view === 'inventory') {
-                        const base = ['商品編號'];
-                        const cats = this.category.map(c => c.name);
-                        const end = ['名稱', '庫存', '成本', '售價'];
-                        return [...base, ...cats, ...end];
-                    }
-                    const headers = {
-                        sales: ['時間', '訂單號', '商品編號', '名稱', '數量', '金額', '會員電話'],
+                    const hd = {
+                        inventory: ['商品編號', ...this.category.map(c => c.name), '名稱', '庫存', '成本', '售價'],
+                        sales: ['時間', '訂單號', '會員名稱', '會員電話', '商品編號', '名稱', '數量', '支付方式', '金額', '折扣', '利潤'],
                         category: ['分類名稱', '選項內容'],
-                        member: ['姓名', '電話', '生日', '累積消費']
+                        member: ['姓名', '電話', '生日', '累積消費', '加入日期', '備註']
                     };
-                    return headers[this.view] || [];
+                    return hd[this.view] || [];
+                },
+                tableDataSorted() {
+                    let data = [...(this[this.view] || [])];
+                    if (this.view === 'sales') return data.reverse(); // 最新資料最上方
+                    return data;
                 },
                 filteredInventory() {
                     const q = this.posSearch.toLowerCase();
-                    return this.inventory.filter(i => String(i.商品編號).includes(q) || String(i.名稱).toLowerCase().includes(q));
+                    return this.inventory.filter(i => String(i.商品編號).includes(q) || String(i.名稱).includes(q));
                 },
-                finalTotal() { return this.cart.reduce((s, i) => s + (Number(i.售價) * i.qty), 0); },
-                filteredTableData() { return this[this.view] || []; }
+                finalTotal() {
+                    let total = this.cart.reduce((s, i) => s + (i.售價 * i.qty), 0);
+                    if (this.discountType === 'cash') total -= this.discountValue;
+                    else total = total * (1 - this.discountValue / 100);
+                    return Math.max(0, Math.round(total));
+                }
             },
             methods: {
                 async handleLogin() {
@@ -205,21 +213,14 @@
                             this.storeApi = data.storeApi;
                             this.isLoggedIn = true;
                             await this.loadData();
-                        } else { alert(data.message); }
-                    } catch (e) { alert("連線失敗"); }
+                        } else alert(data.message);
+                    } catch (e) { alert("系統商連線失敗"); }
                     this.loading = false;
                 },
                 async loadData() {
                     const res = await fetch(`${this.storeApi}?action=getData`);
-                    const data = await res.json();
-                    this.inventory = data.inventory || [];
-                    this.member = data.member || [];
-                    this.sales = data.sales || [];
-                    this.category = data.category || [];
-                },
-                getOptions(fieldName) {
-                    const cat = this.category.find(c => c.name === fieldName);
-                    return cat ? cat.options : [];
+                    const d = await res.json();
+                    this.inventory = d.inventory; this.member = d.member; this.sales = d.sales; this.category = d.category;
                 },
                 addToCart(item) {
                     const ex = this.cart.find(c => c.商品編號 === item.商品編號);
@@ -227,23 +228,27 @@
                 },
                 async handleCheckout() {
                     this.loading = true;
+                    const discountStr = this.discountType === 'cash' ? `-${this.discountValue}元` : `${this.discountValue}%`;
                     try {
                         await fetch(this.storeApi, {
                             method: 'POST',
                             body: JSON.stringify({ 
                                 action: 'addSale', 
-                                data: this.cart.map(it => ({...it, 金額: it.售價 * it.qty }))
+                                data: this.cart.map(it => ({...it, 金額: it.售價 * it.qty })),
+                                memberPhone: this.checkoutInfo.phone,
+                                totalAmount: this.finalTotal,
+                                discountInfo: discountStr
                             })
                         });
-                        // 即時本地庫存預扣，提升用戶體驗
-                        this.cart.forEach(c => {
-                            const inv = this.inventory.find(i => i.商品編號 === c.商品編號);
-                            if (inv) inv.庫存 -= c.qty;
-                        });
-                        this.cart = [];
-                        alert("結帳成功！試算表已同步扣庫存");
+                        alert("結帳成功！");
+                        this.cart = []; this.discountValue = 0; this.checkoutInfo.phone = "";
+                        await this.loadData();
                     } catch (e) { alert("結帳傳輸失敗"); }
                     this.loading = false;
+                },
+                getOptions(field) {
+                    const c = this.category.find(cat => cat.name === field);
+                    return c ? c.options : [];
                 },
                 openModal(mode, row = {}) {
                     this.modalMode = mode;
@@ -253,22 +258,18 @@
                 async handleSave() {
                     this.loading = true;
                     try {
-                        const res = await fetch(this.storeApi, {
+                        await fetch(this.storeApi, {
                             method: 'POST',
                             body: JSON.stringify({ action: 'updateData', type: this.view, mode: this.modalMode, data: this.formData })
                         });
-                        const result = await res.json();
-                        if (result.status === 'success') {
-                            this.showModal = false;
-                            await this.loadData();
-                        }
+                        this.showModal = false;
+                        await this.loadData();
                     } catch (e) { alert("儲存失敗"); }
                     this.loading = false;
                 },
-                logout() { this.isLoggedIn = false; this.view = 'pos'; }
+                logout() { this.isLoggedIn = false; }
             }
         }).mount('#app');
     </script>
 </body>
 </html>
-
