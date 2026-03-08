@@ -12,7 +12,6 @@
         .spinner { animation: spin 1s linear infinite; width: 1.2rem; height: 1.2rem; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .active-tab { background: white !important; color: #4338ca !important; }
-        /* 橫向捲軸優化 */
         .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -99,9 +98,14 @@
             </div>
 
             <div v-else class="bg-white rounded-3xl p-6 shadow-xl overflow-hidden">
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <h2 class="text-xl font-black">{{ menuItems[view] }}</h2>
-                    <button v-if="!['sales','category'].includes(view)" @click="openModal('add')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm">+ 新增</button>
+                    <div class="flex w-full md:w-auto gap-2">
+                        <input v-if="view === 'sales'" v-model="salesSearch" type="text" placeholder="搜尋時間/單號/會員/商品..." class="flex-grow md:w-80 p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:border-indigo-500">
+                        <input v-else v-model="mgmtSearch" type="text" placeholder="快速搜尋..." class="flex-grow md:w-64 p-3 bg-slate-50 border rounded-xl text-sm outline-none focus:border-indigo-500">
+                        
+                        <button v-if="view !== 'sales'" @click="openModal('add')" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm whitespace-nowrap shadow-lg shadow-indigo-100">+ 新增</button>
+                    </div>
                 </div>
                 
                 <div class="table-container custom-scrollbar">
@@ -109,14 +113,15 @@
                         <thead>
                             <tr class="text-slate-400 border-b">
                                 <th v-for="h in currentHeaders" class="p-3">{{ h }}</th>
-                                <th v-if="!['sales','category'].includes(view)" class="p-3 text-right">操作</th>
+                                <th v-if="view !== 'sales'" class="p-3 text-right">操作</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="row in tableDataSorted" class="border-b hover:bg-slate-50">
+                            <tr v-for="row in tableDataFiltered" class="border-b hover:bg-slate-50">
                                 <td v-for="h in currentHeaders" class="p-3 font-medium">{{ row[h] }}</td>
-                                <td v-if="!['sales','category'].includes(view)" class="p-3 text-right">
-                                    <button @click="openModal('edit', row)" class="text-indigo-600 font-bold px-2">編輯</button>
+                                <td v-if="view !== 'sales'" class="p-3 text-right space-x-2">
+                                    <button @click="openModal('edit', row)" class="text-indigo-600 font-bold hover:underline">編輯</button>
+                                    <button @click="handleDelete(row)" class="text-red-500 font-bold hover:underline">刪除</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -160,7 +165,8 @@
 
     <script>
         const { createApp } = Vue;
-        const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycbxGAMJXW7KUmaAalHHTbzTXsLxxuBS1gpjeHhSBP2Eos-DbBJICnR9fPfRP-MPMe7UkrA/exec";
+        // 已更新為您提供的中央系統網址
+        const CENTRAL_API_URL = "https://script.google.com/macros/s/AKfycby1bId2K5RYWRmX8q0pKeebolj_0_r3Urgaeyh7uUYhxG9A8LgFluNE-z-0eTZAZW6ZPg/exec";
 
         createApp({
             data() {
@@ -170,6 +176,7 @@
                     loginForm: { user: '', pass: '' },
                     inventory: [], member: [], sales: [], category: [],
                     cart: [], posSearch: '',
+                    salesSearch: '', mgmtSearch: '', // 搜尋用變數
                     discountType: 'cash', discountValue: 0,
                     checkoutInfo: { phone: '' },
                     menuItems: { pos: '收銀', inventory: '商品管理', sales: '銷售紀錄', category: '分類管理', member: '會員資料' },
@@ -186,10 +193,26 @@
                     };
                     return hd[this.view] || [];
                 },
-                tableDataSorted() {
-                    let data = [...(this[this.view] || [])];
-                    if (this.view === 'sales') return data.reverse(); // 最新資料最上方
-                    return data;
+                // [調整2] 銷售紀錄與一般管理頁面的篩選邏輯
+                tableDataFiltered() {
+                    if (this.view === 'sales') {
+                        const q = this.salesSearch.toLowerCase();
+                        let data = [...this.sales].reverse();
+                        if (!q) return data;
+                        return data.filter(r => 
+                            String(r.時間).toLowerCase().includes(q) ||
+                            String(r.訂單號).toLowerCase().includes(q) ||
+                            String(r.會員名稱).toLowerCase().includes(q) ||
+                            String(r.會員電話).toLowerCase().includes(q) ||
+                            String(r.商品編號).toLowerCase().includes(q) ||
+                            String(r.名稱).toLowerCase().includes(q)
+                        );
+                    } else {
+                        const q = this.mgmtSearch.toLowerCase();
+                        let data = [...(this[this.view] || [])];
+                        if (!q) return data;
+                        return data.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(q)));
+                    }
                 },
                 filteredInventory() {
                     const q = this.posSearch.toLowerCase();
@@ -214,7 +237,7 @@
                             this.isLoggedIn = true;
                             await this.loadData();
                         } else alert(data.message);
-                    } catch (e) { alert("系統商連線失敗"); }
+                    } catch (e) { alert("系統商連線失敗，請檢查 CORS 或網址"); }
                     this.loading = false;
                 },
                 async loadData() {
@@ -247,14 +270,15 @@
                     this.loading = false;
                 },
                 getOptions(field) {
-                    const c = this.category.find(cat => cat.name === field);
-                    return c ? c.options : [];
+                    const c = this.category.find(cat => cat.name === field || cat.分類名稱 === field);
+                    return c ? (c.options || (c.選項內容 ? c.選項內容.split(',') : [])) : [];
                 },
                 openModal(mode, row = {}) {
                     this.modalMode = mode;
                     this.formData = mode === 'add' ? {} : { ...row };
                     this.showModal = true;
                 },
+                // [調整1] 新增/編輯與刪除功能
                 async handleSave() {
                     this.loading = true;
                     try {
@@ -267,10 +291,21 @@
                     } catch (e) { alert("儲存失敗"); }
                     this.loading = false;
                 },
+                async handleDelete(row) {
+                    if (!confirm(`確定要刪除這筆資料嗎？`)) return;
+                    this.loading = true;
+                    try {
+                        await fetch(this.storeApi, {
+                            method: 'POST',
+                            body: JSON.stringify({ action: 'updateData', type: this.view, mode: 'delete', data: row })
+                        });
+                        await this.loadData();
+                    } catch (e) { alert("刪除失敗"); }
+                    this.loading = false;
+                },
                 logout() { this.isLoggedIn = false; }
             }
         }).mount('#app');
     </script>
 </body>
 </html>
-
